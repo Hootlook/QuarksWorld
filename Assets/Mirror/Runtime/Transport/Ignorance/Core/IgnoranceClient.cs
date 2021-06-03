@@ -46,12 +46,14 @@ namespace IgnoranceTransport
 
         public void Start()
         {
-            Debug.Log("IgnoranceClient.Start()");
+            if (Verbosity > 0)
+                Debug.Log("IgnoranceClient.Start()");
 
             if (WorkerThread != null && WorkerThread.IsAlive)
             {
                 // Cannot do that.
-                Debug.LogError("A worker thread is already running. Cannot start another.");
+                if (Verbosity > 0)
+                    Debug.LogError("A worker thread is already running. Cannot start another.");
                 return;
             }
 
@@ -75,13 +77,15 @@ namespace IgnoranceTransport
 
             WorkerThread = new Thread(ThreadWorker);
             WorkerThread.Start(threadParams);
-
-            Debug.Log("Client has dispatched worker thread.");
+            
+            if (Verbosity > 0)
+                Debug.Log("Client has dispatched worker thread.");
         }
 
         public void Stop()
         {
-            Debug.Log("Telling client thread to stop, this may take a while depending on network load");
+            if (Verbosity > 0)
+                Debug.Log("Telling client thread to stop, this may take a while depending on network load");
             CeaseOperation = true;
         }
 
@@ -106,18 +110,21 @@ namespace IgnoranceTransport
             }
             else
             {
-                Debug.LogError("Ignorance Client: Startup failure: Invalid thread parameters. Aborting.");
+                if (Verbosity > 0)
+                    Debug.LogError("Ignorance Client: Startup failure: Invalid thread parameters. Aborting.");
                 return;
             }
 
             // Attempt to initialize ENet inside the thread.
             if (Library.Initialize())
             {
-                Debug.Log("Ignorance Client: ENet initialized.");
+                if (Verbosity > 0)
+                    Debug.Log("Ignorance Client: ENet initialized.");
             }
             else
             {
-                Debug.LogError("Ignorance Client: Failed to initialize ENet. This threads' fucked.");
+                if (Verbosity > 0)
+                    Debug.LogError("Ignorance Client: Failed to initialize ENet. This threads' fucked.");
                 return;
             }
 
@@ -262,8 +269,8 @@ namespace IgnoranceTransport
                         }
                     }
                 }
-
-                Debug.Log("Ignorance Server: Shutdown commencing, disconnecting and flushing connection.");
+                if (Verbosity > 0)
+                    Debug.Log("Ignorance Server: Shutdown commencing, disconnecting and flushing connection.");
 
                 // Flush the client and disconnect.
                 clientPeer.Disconnect(0);

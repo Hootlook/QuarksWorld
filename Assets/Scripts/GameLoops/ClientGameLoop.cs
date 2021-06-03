@@ -1,4 +1,5 @@
 using Mirror;
+using QuarksWorld.Systems;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,6 +8,26 @@ using UnityEngine.SceneManagement;
 
 namespace QuarksWorld
 {
+    public class ClientGameWorld
+    {
+        public ClientGameWorld()
+        {
+            levelCameraSystem = new LevelCameraSystem();
+        }
+
+        public void Shutdown()
+        {
+            levelCameraSystem.Shutdown();
+        }
+
+        public void Update()
+        {
+            levelCameraSystem.Update();
+        }
+
+        readonly LevelCameraSystem levelCameraSystem;
+    }
+
     public class ClientGameLoop : Game.IGameLoop
     {
         GameObject gameObject;
@@ -31,6 +52,7 @@ namespace QuarksWorld
             stateMachine.Add(ClientState.Loading, EnterLoadingState, UpdateLoadingState, null);
             stateMachine.Add(ClientState.Playing, EnterPlayingState, UpdatePlayingState, LeavePlayingState);
 
+            stateMachine.SwitchTo(ClientState.Connecting);
 
             RegisterMessages();
 
@@ -43,10 +65,10 @@ namespace QuarksWorld
 
         public void Shutdown()
         {
+            Console.RemoveCommandsWithTag(this.GetHashCode());
+
             NetworkClient.Disconnect();
             NetworkClient.Shutdown();
-
-            ChangeScene("boot", SceneOperation.Normal);
 
             UnityEngine.Object.Destroy(gameObject);
         }
@@ -62,10 +84,10 @@ namespace QuarksWorld
 
         void RegisterMessages()
         {
-            NetworkClient.OnConnectedEvent = OnClientConnectInternal;
-            NetworkClient.OnDisconnectedEvent = OnClientDisconnectInternal;
-            NetworkClient.RegisterHandler<NotReadyMessage>(OnClientNotReadyMessageInternal);
-            NetworkClient.RegisterHandler<SceneMessage>(OnClientSceneInternal, false);
+            NetworkClient.OnConnectedEvent = OnConnect;
+            NetworkClient.OnDisconnectedEvent = OnDisconnect;
+            NetworkClient.RegisterHandler<NotReadyMessage>(OnNotReady);
+            NetworkClient.RegisterHandler<SceneMessage>(OnMapUpate, false);
 
             //if (playerPrefab != null)
             //    NetworkClient.RegisterPrefab(playerPrefab);
@@ -74,14 +96,12 @@ namespace QuarksWorld
             //    NetworkClient.RegisterPrefab(prefab);
         }
 
-        void OnClientConnectInternal()
+        void OnConnect()
         {
             NetworkClient.connection.isAuthenticated = true;
-
-            stateMachine.SwitchTo(ClientState.Connecting);
         }
 
-        void OnClientDisconnectInternal()
+        void OnDisconnect()
         {
             NetworkClient.Disconnect();
             NetworkClient.Shutdown();
@@ -89,92 +109,26 @@ namespace QuarksWorld
             stateMachine.SwitchTo(ClientState.Browsing);
         }
 
-        void OnClientNotReadyMessageInternal(NotReadyMessage msg)
+        void OnNotReady(NotReadyMessage msg)
         {
             NetworkClient.ready = false;
         }
 
-        void OnClientSceneInternal(SceneMessage msg)
+        void OnMapUpate(SceneMessage msg)
         {
-            if (NetworkClient.isConnected)
-            {
-                ChangeScene(msg.sceneName, msg.sceneOperation, msg.customHandling);
-            }
+            levelName = msg.sceneName;
+
+            if (stateMachine.CurrentState() != ClientState.Loading)
+                stateMachine.SwitchTo(ClientState.Loading);
         }
-
-        SceneOperation clientSceneOperation = SceneOperation.Normal;
-
-        void ChangeScene(string newSceneName, SceneOperation sceneOperation = SceneOperation.Normal, bool customHandling = false)
-        {
-            if (string.IsNullOrEmpty(newSceneName))
-            {
-                Debug.LogError("ClientChangeScene empty scene name");
-                return;
-            }
-
-            // vis2k: pause message handling while loading scene. otherwise we will process messages and then lose all
-            // the state as soon as the load is finishing, causing all kinds of bugs because of missing state.
-            // (client may be null after StopClient etc.)
-            // Debug.Log("ClientChangeScene: pausing handlers while scene is loading to avoid data loss after scene was loaded.");
-            Transport.activeTransport.enabled = false;
-
-            // Cache sceneOperation so we know what was requested by the
-            // Scene message in OnClientChangeScene and OnClientSceneChanged
-            clientSceneOperation = sceneOperation;
-
-            // Let client prepare for scene change
-            OnClientChangeScene(newSceneName, sceneOperation, customHandling);
-
-            // scene handling will happen in overrides of OnClientChangeScene and/or OnClientSceneChanged
-            if (customHandling)
-            {
-                FinishLoadScene();
-                return;
-            }
-
-            switch (sceneOperation)
-            {
-                case SceneOperation.Normal:
-                    loadingSceneAsync = SceneManager.LoadSceneAsync(newSceneName);
-                    break;
-                case SceneOperation.LoadAdditive:
-                    // Ensure additive scene is not already loaded on client by name or path
-                    // since we don't know which was passed in the Scene message
-                    if (!SceneManager.GetSceneByName(newSceneName).IsValid() && !SceneManager.GetSceneByPath(newSceneName).IsValid())
-                        loadingSceneAsync = SceneManager.LoadSceneAsync(newSceneName, LoadSceneMode.Additive);
-                    else
-                    {
-                        Debug.LogWarning($"Scene {newSceneName} is already loaded");
-
-                        // Re-enable the transport that we disabled before entering this switch
-                        Transport.activeTransport.enabled = true;
-                    }
-                    break;
-                case SceneOperation.UnloadAdditive:
-                    // Ensure additive scene is actually loaded on client by name or path
-                    // since we don't know which was passed in the Scene message
-                    if (SceneManager.GetSceneByName(newSceneName).IsValid() || SceneManager.GetSceneByPath(newSceneName).IsValid())
-                        loadingSceneAsync = SceneManager.UnloadSceneAsync(newSceneName, UnloadSceneOptions.UnloadAllEmbeddedSceneObjects);
-                    else
-                    {
-                        Debug.LogWarning($"Cannot unload {newSceneName} with UnloadAdditive operation");
-
-                        // Re-enable the transport that we disabled before entering this switch
-                        Transport.activeTransport.enabled = true;
-                    }
-                    break;
-            }
-
-            // don't change the client's current networkSceneName when loading additive scene content
-            if (sceneOperation == SceneOperation.Normal)
-                networkSceneName = newSceneName;
-        }
-
-
 
         #region States
 
-        void EnterBrowsingState() { }
+        void EnterBrowsingState() 
+        {
+            GameDebug.Assert(clientWorld == null);
+            clientState = ClientState.Browsing;
+        }
 
         void UpdateBrowsingState() { }
 
@@ -183,6 +137,8 @@ namespace QuarksWorld
         void EnterConnectingState()
         {
             GameDebug.Assert(clientState == ClientState.Browsing, "Expected ClientState to be browsing");
+            GameDebug.Assert(clientWorld == null, "Expected ClientWorld to be null");
+
             clientState = ClientState.Connecting;
         }
 
@@ -196,19 +152,20 @@ namespace QuarksWorld
                 case ConnectState.Connecting:
                     // Do nothing; just wait for either success or failure
                     break;
+                case ConnectState.None:
                 case ConnectState.Disconnected:
                     if (connectRetryCount < 2)
                     {
                         connectRetryCount++;
                         gameMessage = string.Format("Trying to connect to {0} (attempt #{1})...", targetServer, connectRetryCount);
                         GameDebug.Log(gameMessage);
-                        networkClient.Connect(targetServer);
+                        NetworkClient.Connect(targetServer);
                     }
                     else
                     {
                         gameMessage = "Failed to connect to server";
                         GameDebug.Log(gameMessage);
-                        networkClient.Disconnect();
+                        NetworkClient.Disconnect();
                         stateMachine.SwitchTo(ClientState.Browsing);
                     }
                     break;
@@ -217,7 +174,12 @@ namespace QuarksWorld
 
         void EnterLoadingState()
         {
-            throw new NotImplementedException();
+            Console.SetOpen(false);
+
+            GameDebug.Assert(clientWorld == null);
+            GameDebug.Assert(NetworkClient.isConnected);
+
+            clientState = ClientState.Loading;
         }
 
         void UpdateLoadingState()
@@ -238,6 +200,8 @@ namespace QuarksWorld
             var level = Game.game.levelManager.currentLevel;
             if (level == null || level.name != levelName)
             {
+                Transport.activeTransport.enabled = false;
+
                 if (!Game.game.levelManager.LoadLevel(levelName))
                 {
                     disconnectReason = string.Format("could not load requested level '{0}'", levelName);
@@ -249,22 +213,41 @@ namespace QuarksWorld
 
             // Wait for level to be loaded
             if (level.state == LevelState.Loaded)
+            {
                 stateMachine.SwitchTo(ClientState.Playing);
+                Transport.activeTransport.enabled = true;
+            }
         }
 
         void EnterPlayingState()
         {
-            throw new NotImplementedException();
+            GameDebug.Assert(clientWorld == null && Game.game.levelManager.IsCurrentLevelLoaded());
+
+            clientWorld = new ClientGameWorld();
+
+            if (!NetworkClient.ready) NetworkClient.Ready();
+
+            clientState = ClientState.Playing;
         }
 
         void UpdatePlayingState()
         {
-            throw new NotImplementedException();
+            if (!NetworkClient.isConnected)
+            {
+                gameMessage = disconnectReason != null ? string.Format("Disconnected from server ({0})", disconnectReason) : "Disconnected from server (lost connection)";
+                stateMachine.SwitchTo(ClientState.Browsing);
+                return;
+            }
+
+            clientWorld.Update();
         }
 
         void LeavePlayingState()
         {
-            throw new NotImplementedException();
+            clientWorld.Shutdown();
+            clientWorld = null;
+
+            Game.game.levelManager.LoadLevel("empty");
         }
 
         #endregion
@@ -273,12 +256,28 @@ namespace QuarksWorld
 
         public void CmdConnect(string[] args)
         {
-            throw new NotImplementedException();
+            if (stateMachine.CurrentState() == ClientState.Browsing)
+            {
+                targetServer = args.Length > 0 ? args[0] : "127.0.0.1";
+                stateMachine.SwitchTo(ClientState.Connecting);
+            }
+            else if (stateMachine.CurrentState() == ClientState.Connecting)
+            {
+                NetworkClient.Disconnect();
+                targetServer = args.Length > 0 ? args[0] : "127.0.0.1";
+                connectRetryCount = 0;
+            }
+            else
+            {
+                GameDebug.Log("Unable to connect from this state: " + stateMachine.CurrentState().ToString());
+            }
         }
 
         void CmdDisconnect(string[] args)
         {
-
+            disconnectReason = "user manually disconnected";
+            NetworkClient.Disconnect();
+            stateMachine.SwitchTo(ClientState.Browsing);
         }
 
         #endregion
@@ -291,7 +290,11 @@ namespace QuarksWorld
 
         string levelName;
 
-        string disconnectReason = null;
+        string disconnectReason;
         string gameMessage = $"Welcome to {Application.productName} !";
+        string targetServer = "127.0.0.1";
+        int connectRetryCount;
+
+        ClientGameWorld clientWorld;
     }
 }

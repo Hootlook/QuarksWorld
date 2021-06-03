@@ -56,8 +56,8 @@ namespace Mirror
         // invoked. this introduced a bug where external clients could send
         // Connected/Disconnected messages over the network causing undefined
         // behaviour.
-        internal static Action<NetworkConnection> OnConnectedEvent;
-        internal static Action<NetworkConnection> OnDisconnectedEvent;
+        public static Action<NetworkConnection> OnConnectedEvent;
+        public static Action<NetworkConnection> OnDisconnectedEvent;
 
         // initialization / shutdown ///////////////////////////////////////////
         static void Initialize()
@@ -352,7 +352,7 @@ namespace Mirror
         // transport events ////////////////////////////////////////////////////
         static void OnConnected(int connectionId)
         {
-            // Debug.Log("Server accepted client:" + connectionId);
+            Debug.Log("Server accepted client:" + connectionId);
 
             // connectionId needs to be != 0 because 0 is reserved for local player
             // note that some transports like kcp generate connectionId by
@@ -368,7 +368,7 @@ namespace Mirror
             if (connections.ContainsKey(connectionId))
             {
                 Transport.activeTransport.ServerDisconnect(connectionId);
-                // Debug.Log("Server connectionId " + connectionId + " already in use. kicked client:" + connectionId);
+                Debug.Log("Server connectionId " + connectionId + " already in use. kicked client:" + connectionId);
                 return;
             }
 
@@ -387,13 +387,13 @@ namespace Mirror
             {
                 // kick
                 Transport.activeTransport.ServerDisconnect(connectionId);
-                // Debug.Log("Server full, kicked client:" + connectionId);
+                Debug.Log("Server full, kicked client:" + connectionId);
             }
         }
 
         internal static void OnConnected(NetworkConnectionToClient conn)
         {
-            // Debug.Log("Server accepted client:" + conn);
+            Debug.Log("Server accepted client:" + conn);
 
             // add connection and invoke connected event
             AddConnection(conn);
@@ -414,12 +414,12 @@ namespace Mirror
 
         internal static void OnDisconnected(int connectionId)
         {
-            // Debug.Log("Server disconnect client:" + connectionId);
+            Debug.Log("Server disconnect client:" + connectionId);
             if (connections.TryGetValue(connectionId, out NetworkConnectionToClient conn))
             {
                 conn.Disconnect();
                 RemoveConnection(connectionId);
-                // Debug.Log("Server lost client:" + connectionId);
+                Debug.Log("Server lost client:" + connectionId);
                 OnDisconnected(conn);
             }
         }
@@ -427,7 +427,7 @@ namespace Mirror
         static void OnDisconnected(NetworkConnection conn)
         {
             OnDisconnectedEvent?.Invoke(conn);
-            //Debug.Log("Server lost client:" + conn);
+            Debug.Log("Server lost client:" + conn);
         }
 
         static void OnError(int connectionId, Exception exception)
