@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "LevelInfo", menuName = "QuiverWorld/Level/LevelInfo")]
+[CreateAssetMenu(fileName = "LevelInfo", menuName = "QuarksWorld/Level/LevelInfo")]
 public class LevelInfo : ScriptableObject
 {
     public enum LevelType

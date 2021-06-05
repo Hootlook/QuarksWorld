@@ -332,7 +332,7 @@ namespace QuarksWorld
             }
         }
 
-        [MenuItem("QuiverWorld/BuildSystem/Win64/OpenBuildFolder")]
+        [MenuItem("QuarksWorld/BuildSystem/Win64/OpenBuildFolder")]
         public static void OpenBuildFolder()
         {
             var target = BuildTarget.StandaloneWindows64;
@@ -350,7 +350,7 @@ namespace QuarksWorld
             }
         }
 
-        //[MenuItem("QuiverWorld/BuildSystem/Win64/Deploy")]
+        //[MenuItem("QuarksWorld/BuildSystem/Win64/Deploy")]
         //public static void Deploy()
         //{
         //    Debug.Log("Window64 Deploying...");
@@ -390,7 +390,7 @@ namespace QuarksWorld
             return;
         }
 
-        [MenuItem("QuiverWorld/BuildSystem/Win64/PostProcess")]
+        [MenuItem("QuarksWorld/BuildSystem/Win64/PostProcess")]
         public static void PostProcessWindows64()
         {
             Debug.Log("Window64 build postprocessing...");
@@ -471,13 +471,13 @@ namespace QuarksWorld
             Debug.Log("Window64 build postprocessing done.");
         }
 
-        [MenuItem("QuiverWorld/BuildSystem/Win64/CreateBuildWindows64")]
+        [MenuItem("QuarksWorld/BuildSystem/Win64/CreateBuildWindows64")]
         public static void CreateBuildWindows64()
         {
             CreateBuildWindows64(false);
         }
 
-        [MenuItem("QuiverWorld/BuildSystem/Win64/CreateBuildWindows64-IL2CPP")]
+        [MenuItem("QuarksWorld/BuildSystem/Win64/CreateBuildWindows64-IL2CPP")]
         public static void CreateBuildWindows64IL2CPP()
         {
             CreateBuildWindows64(true);
@@ -505,7 +505,7 @@ namespace QuarksWorld
             PostProcessWindows64();
         }
 
-        [MenuItem("QuiverWorld/BuildSystem/PS4/CreateBuildPS4")]
+        [MenuItem("QuarksWorld/BuildSystem/PS4/CreateBuildPS4")]
         public static void CreateBuildPS4()
         {
             var target = BuildTarget.PS4;
@@ -523,7 +523,7 @@ namespace QuarksWorld
                 throw new Exception("BuildPipeline.BuildPlayer failed: " + res.ToString());
         }
 
-        [MenuItem("QuiverWorld/BuildSystem/Linux64/PostProcess")]
+        [MenuItem("QuarksWorld/BuildSystem/Linux64/PostProcess")]
         public static void PostProcessLinux()
         {
             Debug.Log("Linux build postprocessing...");
@@ -557,7 +557,7 @@ namespace QuarksWorld
             Debug.Log("Linux build postprocessing done.");
         }
 
-        [MenuItem("QuiverWorld/BuildSystem/Linux64/CreateBuildLinux64")]
+        [MenuItem("QuarksWorld/BuildSystem/Linux64/CreateBuildLinux64")]
         public static void CreateBuildLinux64()
         {
             var target = BuildTarget.StandaloneLinux64;
@@ -580,7 +580,7 @@ namespace QuarksWorld
 
         // This is just a little convenience for when iterating on Linux specific code
         // Build a full build and then use this to just build the executable into the same build folder.
-        [MenuItem("QuiverWorld/BuildSystem/Linux64/CreateBuildLinux64_OnlyExecutable")]
+        [MenuItem("QuarksWorld/BuildSystem/Linux64/CreateBuildLinux64_OnlyExecutable")]
         public static void CreateBuildLinux64_OnlyExecutable()
         {
             var target = BuildTarget.StandaloneLinux64;

@@ -28,7 +28,7 @@ namespace QuarksWorld
             }
         }
 
-        [MenuItem("QuiverWorld/Registries/Test registries")]
+        [MenuItem("QuarksWorld/Registries/Test registries")]
         public static void TestRegistriesMenu()
         {
             BuildWindowProgress.Open("Verify Registries");
@@ -36,7 +36,7 @@ namespace QuarksWorld
         }
 
 
-        [MenuItem("QuiverWorld/Registries/Prepare registries")]
+        [MenuItem("QuarksWorld/Registries/Prepare registries")]
         public static void PrepareRegistriesMenu()
         {
             PrepareRegistries();

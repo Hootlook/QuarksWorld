@@ -6,24 +6,44 @@ using QuarksWorld.Systems;
 
 namespace QuarksWorld
 {
-    public class ServerGameWorld
+    internal class ServerGameWorld
     {
-        public ServerGameWorld()
+        internal ServerGameWorld(GameWorld world, BundledResourceManager resourceSystem)
         {
+            gameWorld = world;
+
             levelCameraSystem = new LevelCameraSystem();
+            playerModule = new PlayerModuleServer(gameWorld, resourceSystem);
+            snapshotSystem = new SnapshotInterpolationServerSystem();
+            movableSystem = new MovableSystemServer();
         }
-        
-        public void Shutdown()
+
+        internal void Shutdown()
         {
             levelCameraSystem.Shutdown();
+            snapshotSystem.Shutdown();
+            movableSystem.Shutdown();
+            playerModule.Shutdown();
         }
 
-        public void Update()
+        internal void Update()
         {
             levelCameraSystem.Update();
+            snapshotSystem.Update();
+            movableSystem.Update();
         }
 
+        internal void SpawnPlayer(NetworkConnection conn)
+        {
+            playerModule.SpawnPlayer(conn);
+        }
+
+        GameWorld gameWorld;
+        
+        readonly PlayerModuleServer playerModule;
         readonly LevelCameraSystem levelCameraSystem;
+        readonly SnapshotInterpolationServerSystem snapshotSystem;
+        readonly MovableSystemServer movableSystem;
     }
 
     public class ServerGameLoop : Game.IGameLoop
@@ -34,7 +54,6 @@ namespace QuarksWorld
         [ConfigVar(Name = "sv.name", DefaultValue = "", Description = "Servername")]
         public static ConfigVar svName;
 
-
         public bool Init(string[] args)
         {
             stateMachine = new StateMachine<ServerState>();
@@ -43,6 +62,8 @@ namespace QuarksWorld
             stateMachine.Add(ServerState.Active, EnterActiveState, UpdateActiveState, LeaveActiveState);
 
             stateMachine.SwitchTo(ServerState.Idle);
+
+            gameWorld = new GameWorld("ServerWorld");
 
             NetworkServer.Listen(svMaxClients.IntValue);
             
@@ -70,7 +91,10 @@ namespace QuarksWorld
             NetworkServer.DisconnectAll();
             NetworkServer.Shutdown();
 
-            Game.game.levelManager.UnloadLevel();            
+            Game.game.levelManager.UnloadLevel();      
+            
+            gameWorld.Shutdown();
+            gameWorld = null;                      
         }
 
         public void Update()
@@ -112,7 +136,10 @@ namespace QuarksWorld
             NetworkServer.SetClientReady(conn);
         }
 
-        void OnAddPlayer(NetworkConnection conn, AddPlayerMessage msg) { }
+        void OnAddPlayer(NetworkConnection conn, AddPlayerMessage msg)
+        {
+            serverWorld?.SpawnPlayer(conn);
+        }
 
         #region States
 
@@ -127,8 +154,10 @@ namespace QuarksWorld
         void EnterActiveState()
         {
             GameDebug.Assert(serverWorld == null);
+            
+            resourceSystem = new BundledResourceManager(gameWorld, "BundledResources/Server");
 
-            serverWorld = new ServerGameWorld();
+            serverWorld = new ServerGameWorld(gameWorld, resourceSystem);
         }
 
         void UpdateActiveState()
@@ -174,7 +203,8 @@ namespace QuarksWorld
         enum ServerState { Idle, Loading, Active }
 
         StateMachine<ServerState> stateMachine;
-
+        BundledResourceManager resourceSystem;
         ServerGameWorld serverWorld;
+        GameWorld gameWorld;
     }
 }

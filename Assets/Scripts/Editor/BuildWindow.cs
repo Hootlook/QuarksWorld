@@ -104,7 +104,7 @@ namespace QuarksWorld
                 quickstartData = new QuickstartData();
         }
 
-        [MenuItem("QuiverWorld/Windows/Project Tools")]
+        [MenuItem("QuarksWorld/Windows/Project Tools")]
         public static void ShowWindow()
         {
             GetWindow<BuildWindow>(false, "Project Tools", true);
