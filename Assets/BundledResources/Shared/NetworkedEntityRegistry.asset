@@ -35,3 +35,14 @@ MonoBehaviour:
       val2: -5806917
       val3: -259998110
     factory: {fileID: 0}
+  - guid:
+      val0: 112009169
+      val1: 742708387
+      val2: 30827224
+      val3: 1127272453
+    prefab:
+      val0: 112009169
+      val1: 742708387
+      val2: 30827224
+      val3: 1127272453
+    factory: {fileID: 0}

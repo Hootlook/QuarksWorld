@@ -7,18 +7,12 @@ namespace QuarksWorld
 {
     public class PlayerState : NetworkBehaviour
     {
-        [SyncVar]
-        public int playerId;
-        [SyncVar]
-        public string playerName;
-        [SyncVar] 
-        public int teamIndex;
-        [SyncVar] 
-        public int score;
-        [SyncVar] 
-        public GameObject controlledEntity;
-        [SyncVar] 
-        public bool gameModeSystemInitialized;
+        [SyncVar] public int playerId;
+        [SyncVar] public string playerName;
+        [SyncVar] public int teamIndex;
+        [SyncVar] public int score;
+        [SyncVar] public GameObject controlledEntity;
+        [SyncVar] public bool gameModeSystemInitialized;
 
         // These are only sync'hed to owning client
         public bool displayScoreBoard;
@@ -35,5 +29,26 @@ namespace QuarksWorld
         public string goalString;
         public string actionString;
         public float goalCompletion;
+
+        // Non synchronized
+        public bool enableCharacterSwitch;
+
+
+        // Character control
+        public int characterType = -1;
+        public int requestedCharacterType = -1;
+
+
+        void Start()
+        {
+            List.Add(this);
+        }
+
+        void OnDestroy()
+        {
+            List.Remove(this);
+        }
+        
+        public static List<PlayerState> List = new List<PlayerState>();
     }
 }

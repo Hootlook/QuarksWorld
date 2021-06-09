@@ -15,10 +15,9 @@ namespace QuarksWorld
         
         public float FrameDuration { get; set; }
 
-        // public GameTime worldTime;
+        public GameTime worldTime;
 
         public int lastServerTick;
-
         public double nextTickTime = 0;
 
         public event Action<GameObject> OnSpawn;
@@ -42,7 +41,7 @@ namespace QuarksWorld
                 Object.DontDestroyOnLoad(sceneRoot);
             }
 
-            // worldTime.TickRate = 60;
+            worldTime.TickRate = 60;
 
             nextTickTime = Game.frameTime;
 
@@ -78,6 +77,7 @@ namespace QuarksWorld
                 return null;
 
             var result = gameObject.GetComponent<T>();
+            var f = gameObject.GetComponents<Component>();
             if (result == null)
             {
                 GameDebug.Log(string.Format("Spawned entity '{0}' didn't have component '{1}'", prefab, typeof(T).FullName));
@@ -148,5 +148,64 @@ namespace QuarksWorld
 
         List<GameObject> gameObjects = new List<GameObject>();
         List<GameObject> despawnRequests = new List<GameObject>(32);
+    }
+    
+    public struct GameTime
+    {
+        /// <summary>Number of ticks per second.</summary>
+        public int TickRate
+        {
+            get { return tickRate; }
+            set
+            {
+                tickRate = value;
+                TickInterval = 1.0f / tickRate;
+            }
+        }
+
+        /// <summary>Length of each world tick at current tickrate, e.g. 0.0166s if ticking at 60fps.</summary>
+        public float TickInterval { get; private set; }     // Time between ticks
+        public int tick;                                    // Current tick   
+        public float tickDuration;                          // Duration of current tick
+
+        public GameTime(int tickRate)
+        {
+            this.tickRate = tickRate;
+            this.TickInterval = 1.0f / this.tickRate;
+            this.tick = 1;
+            this.tickDuration = 0;
+        }
+
+        public float TickDurationAsFraction => tickDuration / TickInterval;
+
+        public void SetTime(int tick, float tickDuration)
+        {
+            this.tick = tick;
+            this.tickDuration = tickDuration;
+        }
+
+        public float DurationSinceTick(int tick) => (this.tick - tick) * TickInterval + tickDuration;
+
+        public void AddDuration(float duration)
+        {
+            tickDuration += duration;
+            int deltaTicks = Mathf.FloorToInt(tickDuration * TickRate);
+            tick += deltaTicks;
+            tickDuration %= TickInterval;
+        }
+
+        public static float GetDuration(GameTime start, GameTime end)
+        {
+            if (start.TickRate != end.TickRate)
+            {
+                GameDebug.LogError("Trying to compare time with different tick rates (" + start.TickRate + " and " + end.TickRate + ")");
+                return 0;
+            }
+
+            float result = (end.tick - start.tick) * start.TickInterval + end.tickDuration - start.tickDuration;
+            return result;
+        }
+
+        int tickRate;
     }
 }

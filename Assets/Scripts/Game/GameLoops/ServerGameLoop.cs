@@ -14,6 +14,7 @@ namespace QuarksWorld
 
             levelCameraSystem = new LevelCameraSystem();
             playerModule = new PlayerModuleServer(gameWorld, resourceSystem);
+            gameModeSystem = new GameModeSystemServer(gameWorld, resourceSystem);
             snapshotSystem = new SnapshotInterpolationServerSystem();
             movableSystem = new MovableSystemServer();
         }
@@ -28,9 +29,14 @@ namespace QuarksWorld
 
         internal void Update()
         {
+            gameWorld.worldTime.tick++;
+            gameWorld.worldTime.tickDuration = gameWorld.worldTime.TickInterval;
+            gameWorld.FrameDuration = gameWorld.worldTime.TickInterval;
+            
             levelCameraSystem.Update();
             snapshotSystem.Update();
             movableSystem.Update();
+            gameModeSystem.Update();
         }
 
         internal void SpawnPlayer(NetworkConnection conn)
@@ -41,9 +47,10 @@ namespace QuarksWorld
         GameWorld gameWorld;
         
         readonly PlayerModuleServer playerModule;
-        readonly LevelCameraSystem levelCameraSystem;
         readonly SnapshotInterpolationServerSystem snapshotSystem;
+        readonly GameModeSystemServer gameModeSystem;
         readonly MovableSystemServer movableSystem;
+        readonly LevelCameraSystem levelCameraSystem;
     }
 
     public class ServerGameLoop : Game.IGameLoop

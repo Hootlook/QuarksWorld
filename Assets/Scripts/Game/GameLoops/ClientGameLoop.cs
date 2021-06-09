@@ -15,6 +15,7 @@ namespace QuarksWorld
             gameWorld = world;
 
             levelCameraSystem = new LevelCameraSystem();
+            playerModule = new PlayerModuleClient(gameWorld);
             snapshotSystem = new SnapshotInterpolationClientSystem();
         }
 
@@ -26,16 +27,28 @@ namespace QuarksWorld
 
         public void Update()
         {
+            // Advances time and accumulate input into the UserCommand being generated
+            gameWorld.worldTime = renderTime;
+            gameWorld.FrameDuration = Time.deltaTime;
+
             levelCameraSystem.Update();
             snapshotSystem.Update();
 
             gameWorld.ProcessDespawns();
         }
 
-        GameWorld gameWorld;
+        public void RegisterLocalPlayer(int playerId)
+        {
+            localPlayer = playerModule.RegisterLocalPlayer(playerId);
+        }
 
-        readonly LevelCameraSystem levelCameraSystem;
+        GameTime renderTime = new GameTime(60);
+        GameWorld gameWorld;
+        LocalPlayer localPlayer;
+
+        readonly PlayerModuleClient playerModule;
         readonly SnapshotInterpolationClientSystem snapshotSystem;
+        readonly LevelCameraSystem levelCameraSystem;
     }
 
     public class ClientGameLoop : Game.IGameLoop
@@ -105,8 +118,6 @@ namespace QuarksWorld
 
             // if (playerPrefab != null)
             //    NetworkClient.RegisterPrefab(playerPrefab);
-
-
         }
 
         void OnConnect()
@@ -239,6 +250,8 @@ namespace QuarksWorld
             resourceSystem = new BundledResourceManager(gameWorld, "BundledResources/Client");
 
             clientWorld = new ClientGameWorld(gameWorld, resourceSystem);
+
+            clientWorld.RegisterLocalPlayer(NetworkClient.connection.connectionId);
 
             var assetRegistry = resourceSystem.GetResourceRegistry<NetworkedEntityRegistry>();
 

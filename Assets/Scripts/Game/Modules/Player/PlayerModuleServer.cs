@@ -9,7 +9,8 @@ namespace QuarksWorld
     {
         public PlayerModuleServer(GameWorld gameWorld, BundledResourceManager resourceSystem)
         {
-            playerStateRef = resourceSystem.GetResourceRegistry<NetworkedEntityRegistry>().entries[0].prefab;
+            // playerStateRef = resourceSystem.GetResourceRegistry<NetworkedEntityRegistry>().entries[0].prefab;
+            playerStateRef = (GameObject)Resources.Load("Prefabs/PlayerState");
 
             this.gameWorld = gameWorld;
             this.resourceSystem = resourceSystem;
@@ -17,25 +18,24 @@ namespace QuarksWorld
 
         public void Shutdown()
         {
-            // Resources.UnloadAsset(prefab);
         }
 
         public void SpawnPlayer(NetworkConnection conn)
         {
-            var prefab = (GameObject)resourceSystem.GetSingleAssetResource(playerStateRef);
-            var player = gameWorld.Spawn(prefab);
+            // var prefab = (GameObject)resourceSystem.GetSingleAssetResource(playerStateRef);
+            var player = gameWorld.Spawn(playerStateRef);
 
-            player.name = $"{prefab.name} [connId={conn.connectionId}]";
+            player.name = $"{playerStateRef.name} [connId={conn.connectionId}]";
             NetworkServer.AddPlayerForConnection(conn, player);
         }
 
         public void DespawnPlayer(PlayerState player)
         {
-            gameWorld.RequestDespawn(player.gameObject);
+            gameWorld.RequestDespawn(player.gameObject); 
         }
 
         readonly GameWorld gameWorld;
         readonly BundledResourceManager resourceSystem;
-        readonly WeakAssetReference playerStateRef;
+        readonly GameObject playerStateRef;
     }
 }

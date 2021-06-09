@@ -16,6 +16,7 @@ namespace QuarksWorld.Components
                 GetComponent<Rigidbody>().isKinematic = true;
             }
         }
+
         public static List<Movable> List = new List<Movable>();
 
         public event Action<Movable> OnSpawn; 
