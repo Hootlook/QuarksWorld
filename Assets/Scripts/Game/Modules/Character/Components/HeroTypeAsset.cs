@@ -9,9 +9,9 @@ namespace QuarksWorld
     public class HeroTypeAsset : ScriptableObject
     {
         public float health = 100;
-        public float eyeHeight = 1.8f;
+        public float eyeHeight = 1.75f;
         public WeakAssetReference abilities;
-        public CharacterDefinition character;
+        public WeakAssetReference character;
         public WeaponDefinition[] weapons;
     }
 }

@@ -4,12 +4,25 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.Callbacks;
 
 namespace QuarksWorld
 {
     [InitializeOnLoad]
     public class EditorLevelManager
     {
+        [PostProcessScene(0)]
+        public static void OnPostProcessScene()
+        {
+            // In editor, we inject the game object to ensure preview mode works
+            var info = EditorLevelManager.GetLevelInfoFor(EditorSceneManager.GetSceneAt(0).path);
+            if (!BuildPipeline.isBuildingPlayer && Game.game == null && info != null && info.levelType != LevelInfo.LevelType.Generic)
+            {
+                var gamePrefab = AssetDatabase.LoadAssetAtPath("Assets/Prefabs/Game.prefab", typeof(GameObject));
+                PrefabUtility.InstantiatePrefab(gamePrefab);
+            }
+        }
+
         static EditorLevelManager()
         {
             EditorSceneManager.sceneOpened += OnSceneOpened;

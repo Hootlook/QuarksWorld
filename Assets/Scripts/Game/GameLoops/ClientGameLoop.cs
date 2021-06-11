@@ -27,9 +27,11 @@ namespace QuarksWorld
 
         public void Update()
         {
-            // Advances time and accumulate input into the UserCommand being generated
+            // HandleTime(Time.deltaTime);
+
             gameWorld.worldTime = renderTime;
             gameWorld.FrameDuration = Time.deltaTime;
+            gameWorld.lastServerTick = NetworkTime.time;
 
             levelCameraSystem.Update();
             snapshotSystem.Update();
@@ -42,7 +44,107 @@ namespace QuarksWorld
             localPlayer = playerModule.RegisterLocalPlayer(playerId);
         }
 
+        // public float frameTimeScale = 1.0f;
+        // const int CommandClientBufferSize = 32;
+        // void HandleTime(float deltaTime)
+        // {
+        //     // Update tick rate (this will only change runtime in test scenarios)
+        //     // TODO (petera) consider use ConfigVars with Server flag for this
+        //     if (m_NetworkClient.serverTickRate != predictedTime.TickRate)
+        //     {
+        //         predictedTime.TickRate = m_NetworkClient.serverTickRate;
+        //         renderTime.TickRate = m_NetworkClient.serverTickRate;
+        //     }
+
+        //     // Sample input into current command
+        //     //  The time passed in here is used to calculate the amount of rotation from stick position
+        //     //  The command stores final view direction
+        //     var userInputEnabled = Game.GetMousePointerLock();
+        //     playerModule.SampleInput(userInputEnabled, Time.deltaTime, renderTime.tick);
+
+        //     int prevTick = predictedTime.tick;
+
+        //     // Increment time
+        //     var deltaPredictedTime = deltaTime * frameTimeScale;
+        //     predictedTime.AddDuration(deltaPredictedTime);
+
+        //     // Adjust time to be synchronized with server
+        //     int preferredBufferedCommandCount = 2;
+        //     int preferredTick = NetworkTime.time + (int)(((m_NetworkClient.timeSinceSnapshot + NetworkTime.rtt) / 1000.0f) * gameWorld.worldTime.TickRate) + preferredBufferedCommandCount;
+
+        //     bool resetTime = false;
+        //     if (!resetTime && predictedTime.tick < preferredTick - 3)
+        //     {
+        //         GameDebug.Log(string.Format("Client hard catchup ... "));
+        //         resetTime = true;
+        //     }
+
+        //     if (!resetTime && predictedTime.tick > preferredTick + 6)
+        //     {
+        //         GameDebug.Log(string.Format("Client hard slowdown ... "));
+        //         resetTime = true;
+        //     }
+
+        //     frameTimeScale = 1.0f;
+        //     if (resetTime)
+        //     {
+        //         GameDebug.Log(string.Format("CATCHUP ({0} -> {1})", predictedTime.tick, preferredTick));
+
+        //         gameWorld.nextTickTime = Game.frameTime;
+        //         predictedTime.tick = preferredTick;
+        //         predictedTime.SetTime(preferredTick, 0);
+        //     }
+        //     else
+        //     {
+        //         int bufferedCommands = m_NetworkClient.lastAcknowlegdedCommandTime - NetworkTime.time;
+        //         if (bufferedCommands < preferredBufferedCommandCount)
+        //             frameTimeScale = 1.01f;
+
+        //         if (bufferedCommands > preferredBufferedCommandCount)
+        //             frameTimeScale = 0.99f;
+        //     }
+
+        //     // Increment interpolation time
+        //     renderTime.AddDuration(deltaTime * frameTimeScale);
+
+        //     // Force interp time to not exeede server time
+        //     if (renderTime.tick >= NetworkTime.time)
+        //     {
+        //         renderTime.SetTime((int)NetworkTime.time, 0);
+        //     }
+
+        //     // hard catchup
+        //     if (renderTime.tick < NetworkTime.time - 10)
+        //     {
+        //         renderTime.SetTime((int)NetworkTime.time - 8, 0);
+        //     }
+
+        //     // Throttle up to catch up
+        //     if (renderTime.tick < NetworkTime.time - 1)
+        //     {
+        //         renderTime.AddDuration(deltaTime * 0.01f);
+        //     }
+
+        //     // If predicted time has entered a new tick the stored commands should be sent to server 
+        //     if (predictedTime.tick > prevTick)
+        //     {
+        //         var oldestCommandToSend = Mathf.Max(prevTick, predictedTime.tick - CommandClientBufferSize);
+        //         for (int tick = oldestCommandToSend; tick < predictedTime.tick; tick++)
+        //         {
+        //             playerModule.StoreCommand(tick);
+        //             playerModule.SendCommand(tick);
+        //         }
+
+        //         playerModule.ResetInput(userInputEnabled);
+        //         playerModule.StoreCommand(predictedTime.tick);
+        //     }
+
+        //     // Store command
+        //     playerModule.StoreCommand(predictedTime.tick);
+        // }
+
         GameTime renderTime = new GameTime(60);
+        GameTime predictedTime = new GameTime(60);
         GameWorld gameWorld;
         LocalPlayer localPlayer;
 

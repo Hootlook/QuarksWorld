@@ -25,6 +25,7 @@ namespace QuarksWorld
             snapshotSystem.Shutdown();
             movableSystem.Shutdown();
             playerModule.Shutdown();
+            gameModeSystem.Shutdown();
         }
 
         internal void Update()
@@ -118,6 +119,7 @@ namespace QuarksWorld
             NetworkServer.OnConnectedEvent = OnConnect;
             NetworkServer.OnDisconnectedEvent = OnDisconnect;
             NetworkServer.RegisterHandler<AddPlayerMessage>(OnAddPlayer);
+            NetworkServer.RegisterHandler<UserCommand>(OnClientCommand);
 
             NetworkServer.ReplaceHandler<ReadyMessage>(OnReady);
         }
@@ -148,6 +150,19 @@ namespace QuarksWorld
             serverWorld?.SpawnPlayer(conn);
         }
 
+        void OnClientCommand(NetworkConnection conn, UserCommand cmd)
+        {
+            var player = conn.identity.GetComponent<PlayerState>();
+
+            if (cmd.tick != gameWorld.worldTime.tick)
+                return;
+
+            if (player.controlledEntity != null)
+            {
+                player.command = cmd;
+            }
+        }
+
         #region States
 
         void UpdateIdleState() { }
@@ -162,9 +177,9 @@ namespace QuarksWorld
         {
             GameDebug.Assert(serverWorld == null);
             
-            resourceSystem = new BundledResourceManager(gameWorld, "BundledResources/Server");
+            resources = new BundledResourceManager(gameWorld, "BundledResources/Server");
 
-            serverWorld = new ServerGameWorld(gameWorld, resourceSystem);
+            serverWorld = new ServerGameWorld(gameWorld, resources);
         }
 
         void UpdateActiveState()
@@ -210,7 +225,7 @@ namespace QuarksWorld
         enum ServerState { Idle, Loading, Active }
 
         StateMachine<ServerState> stateMachine;
-        BundledResourceManager resourceSystem;
+        BundledResourceManager resources;
         ServerGameWorld serverWorld;
         GameWorld gameWorld;
     }

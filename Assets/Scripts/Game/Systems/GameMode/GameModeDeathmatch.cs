@@ -20,7 +20,6 @@ namespace QuarksWorld.Systems
             world = gameWorld;
             gameModeSystem = gameModeSystemServer;
 
-            // Create teams
             gameModeSystem.CreateTeam("Team 1");
             gameModeSystem.CreateTeam("Team 2");
 
@@ -31,6 +30,7 @@ namespace QuarksWorld.Systems
         {
             foreach (var t in gameModeSystem.teams)
                 t.score = 0;
+                
             phase = Phase.Countdown;
             gameModeSystem.StartGameTimer(preMatchTime, "PreMatch");
         }
@@ -152,7 +152,7 @@ namespace QuarksWorld.Systems
         public void OnPlayerJoin(PlayerState player)
         {
             player.score = 0;
-            gameModeSystem.AssignTeam(player);
+            gameModeSystem.AssignTeamBalanced(player);
         }
 
         public void OnPlayerKilled(PlayerState victim, PlayerState killer)

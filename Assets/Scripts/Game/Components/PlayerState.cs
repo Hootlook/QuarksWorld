@@ -32,22 +32,29 @@ namespace QuarksWorld
 
         // Non synchronized
         public bool enableCharacterSwitch;
+        public UserCommand command = UserCommand.defaultCommand;
 
 
         // Character control
         public int characterType = -1;
         public int requestedCharacterType = -1;
 
-
-        void Start()
+        public static bool ResolveLocalPlayer(ref PlayerState assignTo)
         {
-            List.Add(this);
+            var localPlayer = PlayerState.List.Find(p => p.isLocalPlayer == true);
+
+            if (localPlayer != null)
+            {
+                assignTo = localPlayer;
+                return true;
+            }
+
+            return false;
         }
 
-        void OnDestroy()
-        {
-            List.Remove(this);
-        }
+        void Start() => List.Add(this); 
+
+        void OnDestroy() => List.Remove(this); 
         
         public static List<PlayerState> List = new List<PlayerState>();
     }

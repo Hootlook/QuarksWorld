@@ -17,7 +17,7 @@ namespace QuarksWorld
 
         public GameTime worldTime;
 
-        public int lastServerTick;
+        public double lastServerTick;
         public double nextTickTime = 0;
 
         public event Action<GameObject> OnSpawn;
@@ -113,6 +113,13 @@ namespace QuarksWorld
             RegisterInternal(go);
 
             return go;
+        }
+
+        public void Despawn(GameObject entity)
+        {
+            OnDespawn?.Invoke(entity);
+            gameObjects.Remove(entity);
+            Object.Destroy(entity);
         }
 
         public void RequestDespawn(GameObject entity)

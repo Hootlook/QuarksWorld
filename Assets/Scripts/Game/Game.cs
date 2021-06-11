@@ -11,8 +11,6 @@ namespace QuarksWorld
     {
         public static Game game;
 
-        public WeakAssetReference movableBoxPrototype;
-
         public static readonly string UserConfigFilename = "user.cfg";
         public static readonly string BootConfigFilename = "boot.cfg";
 
@@ -24,6 +22,12 @@ namespace QuarksWorld
         // Vars owned by server and replicated to clients
         [ConfigVar(Name = "server.tickrate", DefaultValue = "60", Description = "Tickrate for server", Flags = ConfigVar.Flags.ServerInfo)]
         public static ConfigVar serverTickRate;
+
+        [ConfigVar(Name = "config.mousesensitivity", DefaultValue = "1.5", Description = "Mouse sensitivity", Flags = ConfigVar.Flags.Save)]
+        public static ConfigVar configMouseSensitivity;
+
+        [ConfigVar(Name = "config.fov", DefaultValue = "60", Description = "Field of view", Flags = ConfigVar.Flags.Save)]
+        public static ConfigVar configFov;
 
         void Awake()
         {
@@ -248,6 +252,11 @@ namespace QuarksWorld
         public static bool IsHeadless()
         {
             return game.isHeadless;
+        }
+        
+        public static bool GetMousePointerLock()
+        {
+            return Cursor.lockState == CursorLockMode.Locked;
         }
 
         public void LoadLevel(string levelname)

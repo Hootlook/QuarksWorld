@@ -12,11 +12,13 @@ namespace QuarksWorld.Systems
         public LevelCameraSystem()
         {
             cameraSpots = Object.FindObjectsOfType<CameraSpot>();
+            
+            prefab = (GameObject)Resources.Load("Prefabs/LevelCamera");
 
-            // NOTE : We should look at this when we have figured out the final 
-            // way that cameras should work
-            GameObject cameraGO = Object.Instantiate(Resources.Load<GameObject>("Prefabs/LevelCamera"));
-            camera = cameraGO.GetComponent<Camera>();
+            var cameraObj = Object.Instantiate(prefab);
+            cameraObj.name = prefab.name;
+
+            camera = cameraObj.GetComponent<Camera>();
 
             if (camera)
                 Game.game.PushCamera(camera);
@@ -26,7 +28,7 @@ namespace QuarksWorld.Systems
 
         public void Update()
         {
-            if (camera == null)
+            if (camera == null || !camera.enabled)
                 return;
 
             var t = Time.realtimeSinceStartup;
@@ -106,6 +108,7 @@ namespace QuarksWorld.Systems
         private static readonly Vector3 IdleLevel = new Vector3(0.1f, 0.3f, 0.3f);
 
         private Camera camera;
+        private GameObject prefab;
 
         private Vector3 originalOrientation;
         private CameraSpot[] cameraSpots;

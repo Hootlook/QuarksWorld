@@ -15,3 +15,4 @@ MonoBehaviour:
   serverBuild: 1
   assetRegistries:
   - {fileID: 11400000, guid: 357ea2890d657dd409c7542c88434445, type: 2}
+  - {fileID: 11400000, guid: 993d01c57bd47494789a3e08c4181a4b, type: 2}

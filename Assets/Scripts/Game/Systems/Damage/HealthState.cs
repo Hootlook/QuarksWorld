@@ -12,5 +12,11 @@ namespace QuarksWorld
         [SyncVar] public float maxHealth;
         [SyncVar] public int deathTick;
         [SyncVar] public int killedBy;
+
+        public void SetMaxHealth(float maxHealth)
+        {
+            this.maxHealth = maxHealth;
+            health = maxHealth;
+        }
     }
 }
