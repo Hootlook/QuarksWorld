@@ -55,6 +55,9 @@ namespace QuarksWorld
 
     public class Console
     {
+        [ConfigVar(Name = "config.showlastline", DefaultValue = "0", Description = "Show last logged line briefly at top of screen")]
+        public static ConfigVar consoleShowLastLine;
+        
         public delegate void MethodDelegate(string[] args);
 
         static IConsoleUI consoleUI;
@@ -78,10 +81,90 @@ namespace QuarksWorld
             consoleUI.Shutdown();
         }
 
-        static void OutputString(string message)
+        public static void Update()
         {
-            if (consoleUI != null)
+            consoleUI.ConsoleUpdate();
+
+            while (pendingCommands.Count > 0)
+            {
+                if (PendingCommandsWaitForFrames > 0)
+                {
+                    PendingCommandsWaitForFrames--;
+                    break;
+                }
+                if (pendingCommandsWaitForLoad)
+                {
+                    if (!Game.game.levelManager.IsCurrentLevelLoaded())
+                        break;
+                    pendingCommandsWaitForLoad = false;
+                }
+                // Remove before executing as we may hit an 'exec' command that wants to insert commands
+                var command = pendingCommands[0];
+                var clientId = pendingclients[0];
+                pendingCommands.RemoveAt(0);
+                pendingclients.RemoveAt(0);
+                ExecuteCommand(command, clientId);
+            }
+        }
+
+        public static void LateUpdate()
+        {
+            consoleUI.ConsoleLateUpdate();
+        }
+
+        public static void ExecuteCommand(string command, int clientId = 0)
+        {
+            var tokens = Tokenize(command);
+            if (tokens.Count < 1)
+                return;
+
+            OutputString(">: " + command, clientId);
+            var commandName = tokens[0].ToLower();
+
+            ConsoleCommand consoleCommand;
+            ConfigVar configVar;
+
+            if (commands.TryGetValue(commandName, out consoleCommand))
+            {
+                if (consoleCommand.isCheats && Game.allowCheats.BoolValue)
+                    OutputString("Cheats are requiered for this action", clientId);
+
+                var arguments = tokens.GetRange(1, tokens.Count - 1).ToArray();
+                consoleCommand.method(arguments);
+            }
+            else if (ConfigVar.ConfigVars.TryGetValue(commandName, out configVar))
+            {
+                if (configVar.flags == ConfigVar.Flags.Cheat && Game.allowCheats.BoolValue)
+                    OutputString("Cheats are requiered for this change", clientId);
+
+                if (tokens.Count == 2)
+                {
+                    configVar.Value = tokens[1];
+                }
+                else if (tokens.Count == 1)
+                {
+                    // Print value
+                    OutputString(string.Format("{0} = {1}", configVar.name, configVar.Value), clientId);
+                }
+                else
+                {
+                    OutputString("Too many arguments", clientId);
+                }
+            }
+            else
+            {
+                OutputString("Unknown command: " + tokens[0], clientId);
+            }
+        }
+
+
+        static void OutputString(string message, int clientId = 0)
+        {
+            if (consoleUI != null && clientId == 0)
                 consoleUI.OutputString(message);
+            
+            if (clientId != 0)
+                OnConsoleWrite?.Invoke(message, clientId);
         }
 
         static string lastMsg = "";
@@ -97,7 +180,7 @@ namespace QuarksWorld
             OutputString(msg);
         }
 
-        public static void AddCommand(string name, MethodDelegate method, string description, int tag = 0)
+        public static void AddCommand(string name, MethodDelegate method, string description, int tag = 0, bool isCheats = false)
         {
             name = name.ToLower();
             if (commands.ContainsKey(name))
@@ -105,7 +188,7 @@ namespace QuarksWorld
                 OutputString("Cannot add command " + name + " twice");
                 return;
             }
-            commands.Add(name, new ConsoleCommand(name, method, description, tag));
+            commands.Add(name, new ConsoleCommand(name, method, description, tag, isCheats));
         }
 
         public static bool RemoveCommand(string name)
@@ -169,38 +252,6 @@ namespace QuarksWorld
             consoleUI.SetPrompt(prompt);
         }
 
-        public static void Update()
-        {
-            //var lastMsgTime = Game.frameTime - timeLastMsg;
-            //if (lastMsgTime < 1.0)
-            //    DebugOverlay.Write(0, 0, lastMsg);
-
-            consoleUI.ConsoleUpdate();
-
-            while (pendingCommands.Count > 0)
-            {
-                if (PendingCommandsWaitForFrames > 0)
-                {
-                    PendingCommandsWaitForFrames--;
-                    break;
-                }
-                if (pendingCommandsWaitForLoad)
-                {
-                    if (!Game.game.levelManager.IsCurrentLevelLoaded())
-                        break;
-                    pendingCommandsWaitForLoad = false;
-                }
-                // Remove before executing as we may hit an 'exec' command that wants to insert commands
-                var cmd = pendingCommands[0];
-                pendingCommands.RemoveAt(0);
-                ExecuteCommand(cmd);
-            }
-        }
-
-        public static void LateUpdate()
-        {
-            consoleUI.ConsoleLateUpdate();
-        }
 
         static void SkipWhite(string input, ref int pos)
         {
@@ -261,44 +312,6 @@ namespace QuarksWorld
             return res;
         }
 
-        public static void ExecuteCommand(string command)
-        {
-            var tokens = Tokenize(command);
-            if (tokens.Count < 1)
-                return;
-
-            OutputString('>' + command);
-            var commandName = tokens[0].ToLower();
-
-            ConsoleCommand consoleCommand;
-            ConfigVar configVar;
-
-            if (commands.TryGetValue(commandName, out consoleCommand))
-            {
-                var arguments = tokens.GetRange(1, tokens.Count - 1).ToArray();
-                consoleCommand.method(arguments);
-            }
-            else if (ConfigVar.ConfigVars.TryGetValue(commandName, out configVar))
-            {
-                if (tokens.Count == 2)
-                {
-                    configVar.Value = tokens[1];
-                }
-                else if (tokens.Count == 1)
-                {
-                    // Print value
-                    OutputString(string.Format("{0} = {1}", configVar.name, configVar.Value));
-                }
-                else
-                {
-                    OutputString("Too many arguments");
-                }
-            }
-            else
-            {
-                OutputString("Unknown command: " + tokens[0]);
-            }
-        }
 
         static void CmdHelp(string[] arguments)
         {
@@ -376,10 +389,14 @@ namespace QuarksWorld
             try
             {
                 var lines = System.IO.File.ReadAllLines(filename);
+
                 pendingCommands.InsertRange(0, lines);
+                pendingclients.InsertRange(0, new int[lines.Length]);
+
                 if (pendingCommands.Count > 128)
                 {
                     pendingCommands.Clear();
+                    pendingclients.Clear();
                     OutputString("Command overflow. Flushing pending commands!!!");
                 }
             }
@@ -390,10 +407,12 @@ namespace QuarksWorld
             }
         }
 
-        public static void EnqueueCommandNoHistory(string command)
+
+        public static void EnqueueCommandNoHistory(string command, int clientId = 0)
         {
             GameDebug.Log("cmd: " + command);
             pendingCommands.Add(command);
+            pendingclients.Add(clientId);
         }
 
         public static void EnqueueCommand(string command)
@@ -493,18 +512,22 @@ namespace QuarksWorld
             public MethodDelegate method;
             public string description;
             public int tag;
+            public bool isCheats;
 
-            public ConsoleCommand(string name, MethodDelegate method, string description, int tag)
+            public ConsoleCommand(string name, MethodDelegate method, string description, int tag, bool isCheats = false)
             {
                 this.name = name;
                 this.method = method;
                 this.description = description;
                 this.tag = tag;
+                this.isCheats = isCheats;
             }
         }
 
-        [ConfigVar(Name = "config.showlastline", DefaultValue = "0", Description = "Show last logged line briefly at top of screen")]
-        public static ConfigVar consoleShowLastLine;
+        ////////////// Support for RPC's /////////////////////////////////////
+        public static event Action<string, int> OnConsoleWrite;
+        static List<int> pendingclients = new List<int>();
+        //////////////////////////////////////////////////////////////////////
 
         static List<string> pendingCommands = new List<string>();
         public static int PendingCommandsWaitForFrames = 0;

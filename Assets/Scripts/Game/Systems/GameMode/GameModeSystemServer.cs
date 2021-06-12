@@ -158,6 +158,7 @@ namespace QuarksWorld.Systems
                     player.score = 0;
                     player.displayGameScore = true;
                     player.goalCompletion = -1.0f;
+                    player.characterType = 1000;
                     gameMode.OnPlayerJoin(player);
                     player.gameModeSystemInitialized = true;
                 }
@@ -268,7 +269,6 @@ namespace QuarksWorld.Systems
         void SpawnSpectator(PlayerState owner, Vector3 position, Quaternion rotation)
         {
             var spectatorObj = world.Spawn(spectatorPrefab, position, rotation);
-            spectatorObj.name = spectatorPrefab.name;
 
             NetworkServer.Spawn(spectatorObj, owner.connectionToClient);
 
@@ -283,7 +283,6 @@ namespace QuarksWorld.Systems
             var heroTypeAsset = heroTypeRegistry.entries[owner.characterType];
 
             var characterObj = world.Spawn(characterPrefab, position, rotation);
-            characterObj.name = characterPrefab.name;
 
             NetworkServer.Spawn(characterObj, owner.connectionToClient);
 

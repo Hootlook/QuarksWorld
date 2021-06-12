@@ -20,13 +20,16 @@ namespace QuarksWorld
         public LevelManager levelManager;
 
         // Vars owned by server and replicated to clients
-        [ConfigVar(Name = "server.tickrate", DefaultValue = "60", Description = "Tickrate for server", Flags = ConfigVar.Flags.ServerInfo)]
+        [ConfigVar(Name = "sv.tickrate", DefaultValue = "60", Description = "Tickrate for server", Flags = ConfigVar.Flags.ServerInfo)]
         public static ConfigVar serverTickRate;
 
-        [ConfigVar(Name = "config.mousesensitivity", DefaultValue = "1.5", Description = "Mouse sensitivity", Flags = ConfigVar.Flags.Save)]
+        [ConfigVar(Name = "sv.cheat", DefaultValue = "0", Description = "Enable cheats for self and clients", Flags = ConfigVar.Flags.ServerInfo)]
+        public static ConfigVar allowCheats;
+
+        [ConfigVar(Name = "cfg.mousesensitivity", DefaultValue = "1.5", Description = "Mouse sensitivity", Flags = ConfigVar.Flags.Save)]
         public static ConfigVar configMouseSensitivity;
 
-        [ConfigVar(Name = "config.fov", DefaultValue = "60", Description = "Field of view", Flags = ConfigVar.Flags.Save)]
+        [ConfigVar(Name = "cfg.fov", DefaultValue = "60", Description = "Field of view", Flags = ConfigVar.Flags.Save)]
         public static ConfigVar configFov;
 
         void Awake()

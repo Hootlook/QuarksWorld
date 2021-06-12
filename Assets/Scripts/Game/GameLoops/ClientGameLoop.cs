@@ -217,6 +217,7 @@ namespace QuarksWorld
             NetworkClient.OnDisconnectedEvent = OnDisconnect;
             NetworkClient.RegisterHandler<NotReadyMessage>(OnNotReady);
             NetworkClient.RegisterHandler<SceneMessage>(OnMapUpate, false);
+            NetworkClient.RegisterHandler<ConsoleMessage>(OnServerOutput, false);
 
             // if (playerPrefab != null)
             //    NetworkClient.RegisterPrefab(playerPrefab);
@@ -246,6 +247,16 @@ namespace QuarksWorld
 
             if (stateMachine.CurrentState() != ClientState.Loading)
                 stateMachine.SwitchTo(ClientState.Loading);
+        }
+
+        void OnServerOutput(ConsoleMessage msg)   
+        {
+            Console.Write("$: " + msg.text);
+        }
+
+        public void Rpc(string command)
+        {
+            NetworkClient.Send(new ConsoleMessage() { text = command });
         }
 
         #region States
@@ -375,6 +386,12 @@ namespace QuarksWorld
                 stateMachine.SwitchTo(ClientState.Browsing);
                 return;
             }
+
+            if (Game.Input.GetKeyUp(KeyCode.O))
+                Rpc("jointeam -1");
+
+            if (Game.Input.GetKeyUp(KeyCode.P))
+                Rpc("jointeam 0");
 
             clientWorld.Update();
         }

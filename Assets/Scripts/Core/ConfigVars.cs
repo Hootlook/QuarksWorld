@@ -107,6 +107,8 @@ namespace QuarksWorld
                 _stringValue = value;
                 if (!int.TryParse(value, out _intValue))
                     _intValue = 0;
+                if (!bool.TryParse(value, out _boolValue))
+                    _boolValue = false;
                 if (!float.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _floatValue))
                     _floatValue = 0;
                 changed = true;
@@ -121,6 +123,11 @@ namespace QuarksWorld
         public float FloatValue
         {
             get { return _floatValue; }
+        }
+
+        public bool BoolValue
+        {
+            get { return _boolValue; }
         }
 
         static void InjectAttributeConfigVars()
@@ -186,6 +193,7 @@ namespace QuarksWorld
 
         string _stringValue;
         float _floatValue;
+        bool _boolValue;
         int _intValue;
     }
 

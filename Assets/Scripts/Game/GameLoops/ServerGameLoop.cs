@@ -79,7 +79,10 @@ namespace QuarksWorld
 
             svName.Value ??= Application.productName;
 
+            Console.OnConsoleWrite += OnConsoleWrite; 
+
             Console.AddCommand("load", CmdLoad, "Load a named scene", GetHashCode());
+            Console.AddCommand("jointeam", CmdJoin, "Change team to the one specified", GetHashCode(), true);
 
             CmdLoad(args);
 
@@ -119,7 +122,8 @@ namespace QuarksWorld
             NetworkServer.OnConnectedEvent = OnConnect;
             NetworkServer.OnDisconnectedEvent = OnDisconnect;
             NetworkServer.RegisterHandler<AddPlayerMessage>(OnAddPlayer);
-            NetworkServer.RegisterHandler<UserCommand>(OnClientCommand);
+            NetworkServer.RegisterHandler<ConsoleMessage>(OnConsoleCommand);
+            NetworkServer.RegisterHandler<UserCommand>(OnUserCommand);
 
             NetworkServer.ReplaceHandler<ReadyMessage>(OnReady);
         }
@@ -150,7 +154,7 @@ namespace QuarksWorld
             serverWorld?.SpawnPlayer(conn);
         }
 
-        void OnClientCommand(NetworkConnection conn, UserCommand cmd)
+        void OnUserCommand(NetworkConnection conn, UserCommand cmd)
         {
             var player = conn.identity.GetComponent<PlayerState>();
 
@@ -161,6 +165,26 @@ namespace QuarksWorld
             {
                 player.command = cmd;
             }
+        }
+
+        void OnConsoleCommand(NetworkConnection conn, ConsoleMessage msg)
+        {
+            Console.ExecuteCommand(msg.text, conn.connectionId);
+        }
+
+        void OnConsoleWrite(string message, int clientId)
+        {
+            // if command is from the server don't send
+            if (clientId == 0 || string.IsNullOrEmpty(message))
+                return;
+
+            if (NetworkServer.connections.TryGetValue(clientId, out NetworkConnectionToClient conn))
+                conn.Send(new ConsoleMessage { text = message });
+        }
+
+        void CmdJoin(string[] args)
+        {
+            NetworkServer.SendToAll(new ConsoleMessage { text = "HELLOO" });
         }
 
         #region States

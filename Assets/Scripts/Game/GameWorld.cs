@@ -108,11 +108,12 @@ namespace QuarksWorld
 
         public GameObject SpawnInternal(GameObject prefab, Vector3 position, Quaternion rotation)
         {
-            var go = Object.Instantiate(prefab, position, rotation);
+            var gameObject = Object.Instantiate(prefab, position, rotation);
+            gameObject.name = prefab.name;
 
-            RegisterInternal(go);
+            RegisterInternal(gameObject);
 
-            return go;
+            return gameObject;
         }
 
         public void Despawn(GameObject entity)
