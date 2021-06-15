@@ -4,12 +4,13 @@ using UnityEngine;
 
 namespace QuarksWorld
 {
+    [DisallowMultipleComponent]
     public class LocalPlayer : MonoBehaviour
     {
-        public int playerId = -1;
+        public int id => PlayerState.localPlayerState?.id ?? -1;
 
-        public PlayerState playerState;
-        public GameObject controlledEntity;
+        public PlayerState playerState => PlayerState.localPlayerState;
+        public GameObject controlledEntity => PlayerState.localPlayerState?.controlledEntity;
         public UserCommand command = UserCommand.defaultCommand;
         public StateBuffer<UserCommand> commandBuffer = new StateBuffer<UserCommand>(ClientCommandBufferSize);
 

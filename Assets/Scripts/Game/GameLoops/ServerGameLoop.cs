@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 using QuarksWorld.Systems;
+using UnityEngine.SceneManagement;
 
 namespace QuarksWorld
 {
@@ -45,6 +46,17 @@ namespace QuarksWorld
             playerModule.SpawnPlayer(conn);
         }
 
+        internal void AssignPlayerTeam(int clientId, string team = "", string role = "")
+        {
+            PlayerState player = NetworkServer.connections[clientId].identity.GetComponent<PlayerState>();
+
+            if (player != null) 
+            {
+                gameModeSystem.AssignTeam(player, team);
+                gameModeSystem.RequestNextChar(player);
+            }
+        }
+
         GameWorld gameWorld;
         
         readonly PlayerModuleServer playerModule;
@@ -73,16 +85,20 @@ namespace QuarksWorld
 
             gameWorld = new GameWorld("ServerWorld");
 
+            Transport.activeTransport.enabled = false;
+
             NetworkServer.Listen(svMaxClients.IntValue);
             
             RegisterMessages();
 
             svName.Value ??= Application.productName;
 
+            SceneManager.activeSceneChanged += OnSceneChanged;
+
             Console.OnConsoleWrite += OnConsoleWrite; 
 
-            Console.AddCommand("load", CmdLoad, "Load a named scene", GetHashCode());
-            Console.AddCommand("jointeam", CmdJoin, "Change team to the one specified", GetHashCode(), true);
+            Console.AddCommand("map", CmdLoad, "Load a named map", GetHashCode());
+            Console.AddCommand("jointeam", RpcJoin, "Change team to the one specified", GetHashCode(), true);
 
             CmdLoad(args);
 
@@ -96,6 +112,7 @@ namespace QuarksWorld
             GameDebug.Log("Server shutting down.");
 
             Console.RemoveCommandsWithTag(GetHashCode());
+            SceneManager.activeSceneChanged -= OnSceneChanged;
 
             stateMachine.Shutdown();
 
@@ -169,7 +186,7 @@ namespace QuarksWorld
 
         void OnConsoleCommand(NetworkConnection conn, ConsoleMessage msg)
         {
-            Console.ExecuteCommand(msg.text, conn.connectionId);
+            Console.EnqueueCommandNoHistory(msg.text, conn.connectionId);
         }
 
         void OnConsoleWrite(string message, int clientId)
@@ -182,9 +199,9 @@ namespace QuarksWorld
                 conn.Send(new ConsoleMessage { text = message });
         }
 
-        void CmdJoin(string[] args)
+        void OnSceneChanged(Scene current, Scene next)
         {
-            NetworkServer.SendToAll(new ConsoleMessage { text = "HELLOO" });
+            NetworkServer.SendToAll(new SceneMessage { sceneName = next.name });
         }
 
         #region States
@@ -200,6 +217,8 @@ namespace QuarksWorld
         void EnterActiveState()
         {
             GameDebug.Assert(serverWorld == null);
+
+            Transport.activeTransport.enabled = true;
             
             resources = new BundledResourceManager(gameWorld, "BundledResources/Server");
 
@@ -213,6 +232,8 @@ namespace QuarksWorld
 
         void LeaveActiveState()
         {
+            Transport.activeTransport.enabled = false;
+
             serverWorld.Shutdown();
             serverWorld = null;
         }
@@ -229,6 +250,16 @@ namespace QuarksWorld
                 LoadLevel(args[0], args[1]);
             else if (args.Length == 0)
                 LoadLevel("GameScene");
+        }
+
+        void RpcJoin(string[] args)
+        {
+            if (args.Length == 2)
+                serverWorld.AssignPlayerTeam(int.Parse(args[0]), args[1]);
+            else if (args.Length == 3)
+                serverWorld.AssignPlayerTeam(int.Parse(args[0]), args[1], args[2]);
+            else if (args.Length == 0)
+                GameDebug.LogError("Console haven't provided clientID");
         }
 
         #endregion

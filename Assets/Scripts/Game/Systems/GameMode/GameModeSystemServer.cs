@@ -90,14 +90,11 @@ namespace QuarksWorld.Systems
                 player.score = 0;
                 player.displayGameScore = true;
                 player.goalCompletion = -1.0f;
-                player.actionString = "";
             }
 
             enableRespawning = true;
 
             gameMode.Restart();
-
-            // chatSystem.ResetChatTime();
         }
 
         public void Shutdown()
@@ -173,8 +170,6 @@ namespace QuarksWorld.Systems
             {
                 var player = playerStates[i];
 
-                player.actionString = player.enableCharacterSwitch ? "Press H to change character" : "";
-
                 // Spawn contolled entity (character) any missing
                 if (player.controlledEntity == null)
                 {
@@ -187,6 +182,7 @@ namespace QuarksWorld.Systems
                     if (player.characterType == 1000)
                     {
                         SpawnSpectator(player, position, rotation);
+                        player.teamIndex = -1;
                     }
                     else
                     {
@@ -204,7 +200,6 @@ namespace QuarksWorld.Systems
                         player.characterType = player.requestedCharacterType;
                         if (player.controlledEntity != null)
                         {
-
                             // Despawn current controlled entity. New entity will be created later
                             if (player.controlledEntity.GetComponent<CharacterState>())
                             {
@@ -224,8 +219,7 @@ namespace QuarksWorld.Systems
                     continue;
                 }
 
-                var healthState = player.controlledEntity.GetComponent<HealthState>();
-                if (healthState != null)
+                if (player.controlledEntity.TryGetComponent(out HealthState healthState))
                 {
                     // Is character dead ?
                     if (healthState.health == 0)
@@ -297,18 +291,6 @@ namespace QuarksWorld.Systems
             owner.controlledEntity = characterObj;
         }
 
-        public void RequestNextChar(PlayerState player)
-        {
-            if (!player.enableCharacterSwitch)
-                return;
-
-            var heroTypeRegistry = resources.GetResourceRegistry<HeroTypeRegistry>();
-
-            player.requestedCharacterType = (player.characterType + 1) % heroTypeRegistry.entries.Count;
-
-            GameDebug.Log($"Player {player.playerId} switched to: {heroTypeRegistry.entries[player.requestedCharacterType].name}");
-        }
-        
         public void CreateTeam(string name)
         {
             var team = new Team();
@@ -319,6 +301,40 @@ namespace QuarksWorld.Systems
             var idx = teams.Count - 1;
             if (idx == 0) gameModeState.teamName0 = name;
             if (idx == 1) gameModeState.teamName1 = name;
+        }
+
+        public void RequestNextChar(PlayerState player)
+        {
+            if (!player.allowedCharacterSwitch)
+                return;
+
+            var heroTypeRegistry = resources.GetResourceRegistry<HeroTypeRegistry>();
+
+            player.requestedCharacterType = (player.characterType + 1) % heroTypeRegistry.entries.Count;
+
+            GameDebug.Log($"Player {player.id} switched to: {heroTypeRegistry.entries[player.requestedCharacterType].name}");
+        }
+
+        public void AssignCharacter(PlayerState player, string characterName)
+        {
+            // if (!player.allowedCharacterSwitch)
+            //     return;
+
+            // var heroTypeRegistry = resources.GetResourceRegistry<HeroTypeRegistry>();
+            // resources.GetSingleAssetResource()
+            // heroTypeRegistry.entries.Find(h => h.character.)
+        }
+
+        public void AssignTeam(PlayerState player, string teamName)
+        {
+            Team team = teams.Find(t => t.name == teamName);
+
+            if(team == null)
+                GameDebug.LogWarning($"Team '{teamName}' doesn't exist");
+
+            player.teamIndex = teams.IndexOf(team);
+
+            Console.OutputString($"Your team will be '{team.name}' next life", player.id);
         }
 
         public void AssignTeamBalanced(PlayerState player)
@@ -358,7 +374,7 @@ namespace QuarksWorld.Systems
             for (int i = 0, c = players.Count; i < c; ++i)
             {
                 var playerState = players[i];
-                if (playerState.playerId == id)
+                if (playerState.id == id)
                     return i;
             }
             return -1;

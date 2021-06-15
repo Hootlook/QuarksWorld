@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1400474927052004500}
   - component: {fileID: 5706545710561275480}
+  - component: {fileID: 5029289803430129543}
   m_Layer: 0
   m_Name: LocalPlayer
   m_TagString: Untagged
@@ -43,13 +44,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59ec48394167dc54b885e3a71cf72055, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerId: -1
-  playerState: {fileID: 0}
-  controlledEntity: {fileID: 0}
   command:
-    checkTick: 0
+    tick: 0
     renderTick: 0
     moveYaw: 0
     moveMagnitude: 0
     lookYaw: 0
     lookPitch: 90
+--- !u!114 &5029289803430129543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4713844161411162207}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b320ce36f1a3a724f9e1517a89624222, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isEnabled: 0
+  position: {x: 0, y: 0, z: 0}
+  rotation: {x: 0, y: 0, z: 0, w: 0}
+  fieldOfView: 0

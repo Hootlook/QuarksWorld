@@ -62,6 +62,8 @@ namespace QuarksWorld.Systems
 
         void Cleanup()
         {
+            Game.game.PopCamera(camera);
+            
             cameraSpots = null;
             camera = null;
             nextCameraSpot = 0;

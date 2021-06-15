@@ -20,10 +20,11 @@ namespace QuarksWorld
         public void SpawnPlayer(NetworkConnection conn)
         {
             var prefab = (GameObject)resources.GetSingleAssetResource(playerStateRef);
-            var player = world.Spawn(prefab);
+            var player = world.Spawn<PlayerState>(prefab);
 
             player.name = $"{prefab.name} [connId={conn.connectionId}]";
-            NetworkServer.AddPlayerForConnection(conn, player);
+            player.id = conn.connectionId;
+            NetworkServer.AddPlayerForConnection(conn, player.gameObject);
         }
 
         public void DespawnPlayer(PlayerState player)

@@ -5,9 +5,10 @@ using Mirror;
 
 namespace QuarksWorld
 {
+    [DisallowMultipleComponent]
     public class PlayerState : NetworkBehaviour
     {
-        [SyncVar] public int playerId;
+        [SyncVar] public int id;
         [SyncVar] public string playerName;
         [SyncVar] public int teamIndex;
         [SyncVar] public int score;
@@ -27,11 +28,10 @@ namespace QuarksWorld
         public uint goalAttackers;
         public uint goalDefenders;
         public string goalString;
-        public string actionString;
         public float goalCompletion;
 
         // Non synchronized
-        public bool enableCharacterSwitch;
+        public bool allowedCharacterSwitch;
         public UserCommand command = UserCommand.defaultCommand;
 
 
@@ -52,9 +52,15 @@ namespace QuarksWorld
             return false;
         }
 
+        public static PlayerState localPlayerState;
+
         void Start() => List.Add(this); 
 
         void OnDestroy() => List.Remove(this); 
+
+        public override void OnStartAuthority() => localPlayerState = this;
+        
+        public override void OnStopAuthority() => localPlayerState = null;
         
         public static List<PlayerState> List = new List<PlayerState>();
     }

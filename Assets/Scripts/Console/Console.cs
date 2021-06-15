@@ -129,7 +129,19 @@ namespace QuarksWorld
                 if (consoleCommand.isCheats && Game.allowCheats.BoolValue)
                     OutputString("Cheats are requiered for this action", clientId);
 
-                var arguments = tokens.GetRange(1, tokens.Count - 1).ToArray();
+                string[] arguments;
+
+                if (clientId == 0)
+                {
+                    arguments = tokens.GetRange(1, tokens.Count - 1).ToArray();
+                }
+                else
+                {
+                    var _ = tokens.GetRange(1, tokens.Count - 1);
+                    _.Insert(0, clientId.ToString());
+                    arguments = _.ToArray();
+                }
+
                 consoleCommand.method(arguments);
             }
             else if (ConfigVar.ConfigVars.TryGetValue(commandName, out configVar))
@@ -158,7 +170,7 @@ namespace QuarksWorld
         }
 
 
-        static void OutputString(string message, int clientId = 0)
+        public static void OutputString(string message, int clientId = 0)
         {
             if (consoleUI != null && clientId == 0)
                 consoleUI.OutputString(message);
@@ -183,11 +195,11 @@ namespace QuarksWorld
         public static void AddCommand(string name, MethodDelegate method, string description, int tag = 0, bool isCheats = false)
         {
             name = name.ToLower();
-            if (commands.ContainsKey(name))
-            {
-                OutputString("Cannot add command " + name + " twice");
-                return;
-            }
+            // if (commands.ContainsKey(name))
+            // {
+            //     OutputString("Cannot add command " + name + " twice");
+            //     return;
+            // }
             commands.Add(name, new ConsoleCommand(name, method, description, tag, isCheats));
         }
 

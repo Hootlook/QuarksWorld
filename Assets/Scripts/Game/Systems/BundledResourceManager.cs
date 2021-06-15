@@ -23,7 +23,7 @@ namespace QuarksWorld
         {
             bool useBundles = !Application.isEditor || forceBundles.IntValue > 0;
 
-            this.world = world;
+            gameWorld = world;
 
 #if UNITY_EDITOR
             if (!useBundles)
@@ -128,13 +128,13 @@ namespace QuarksWorld
             var prefab = resource as GameObject;
             if (prefab != null)
             {
-                var gameObject = world.Spawn(prefab);
+                var gameObject = gameWorld.Spawn(prefab);
                 return gameObject;
             }
 
             if (resource is NetworkedEntityFactory factory)
             {
-                return factory.Create(this, world);
+                return factory.Create(this, gameWorld);
             }
 
             return null;
@@ -190,7 +190,7 @@ namespace QuarksWorld
             public Object asset;
         }
 
-        GameWorld world;
+        GameWorld gameWorld;
         AssetRegistryRoot assetRegistryRoot;
         AssetBundle assetRegistryRootBundle;
         Dictionary<System.Type, ScriptableObject> assetRegistryMap = new Dictionary<System.Type, ScriptableObject>();

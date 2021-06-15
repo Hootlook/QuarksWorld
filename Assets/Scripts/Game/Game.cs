@@ -26,6 +26,9 @@ namespace QuarksWorld
         [ConfigVar(Name = "sv.cheat", DefaultValue = "0", Description = "Enable cheats for self and clients", Flags = ConfigVar.Flags.ServerInfo)]
         public static ConfigVar allowCheats;
 
+        [ConfigVar(Name = "cfg.inverty", DefaultValue = "0", Description = "Invert y mouse axis", Flags = ConfigVar.Flags.Save)]
+        public static ConfigVar configInvertY;
+
         [ConfigVar(Name = "cfg.mousesensitivity", DefaultValue = "1.5", Description = "Mouse sensitivity", Flags = ConfigVar.Flags.Save)]
         public static ConfigVar configMouseSensitivity;
 
@@ -61,7 +64,9 @@ namespace QuarksWorld
             }
             else
             {
-                var consoleUI = Instantiate(Resources.Load<ConsoleGUI>("Prefabs/ConsoleGUI"));
+                var consolePrefab = Resources.Load<ConsoleGUI>("Prefabs/ConsoleGUI");
+                var consoleUI = Instantiate(consolePrefab);
+                consoleUI.name = consolePrefab.name;
                 DontDestroyOnLoad(consoleUI);
                 Console.Init(consoleUI);
             }
@@ -108,7 +113,7 @@ namespace QuarksWorld
             Console.AddCommand("boot", CmdBoot, "Go back to boot loop");
             Console.AddCommand("connect", CmdConnect, "connect <ip>: Connect to server on ip (default: localhost)");
 
-            Console.AddCommand("load", CmdLoad, "Load level");
+            Console.AddCommand("load", CmdLoad, "Load map at boot level");
 
             Console.ProcessCommandLineArguments(args.ToArray());
 
@@ -269,6 +274,8 @@ namespace QuarksWorld
                 GameDebug.Log("ERROR : Cannot load level : " + levelname);
                 return;
             }
+
+            ShutdownGameLoops();
 
             Game.game.levelManager.LoadLevel(levelname);
         }

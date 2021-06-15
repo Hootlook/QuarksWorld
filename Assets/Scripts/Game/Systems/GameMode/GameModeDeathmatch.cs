@@ -20,8 +20,8 @@ namespace QuarksWorld.Systems
             world = gameWorld;
             gameModeSystem = gameModeSystemServer;
 
-            gameModeSystem.CreateTeam("Team 1");
-            gameModeSystem.CreateTeam("Team 2");
+            gameModeSystem.CreateTeam("Red");
+            gameModeSystem.CreateTeam("Blue");
 
             Console.Write("Deathmatch game mode initialized");
         }
@@ -129,7 +129,7 @@ namespace QuarksWorld.Systems
                     continue;
 
                 var position = player.controlledEntity.transform.position;
-                player.enableCharacterSwitch = false;
+                player.allowedCharacterSwitch = false;
                 foreach (var teamBase in gameModeSystem.teamBases)
                 {
                     if (teamBase.teamIndex == player.teamIndex)
@@ -137,7 +137,7 @@ namespace QuarksWorld.Systems
                         var inside = (teamBase.boxCollider.transform.InverseTransformPoint(position) - teamBase.boxCollider.center);
                         if (Mathf.Abs(inside.x) < teamBase.boxCollider.size.x * 0.5f && Mathf.Abs(inside.y) < teamBase.boxCollider.size.y * 0.5f && Mathf.Abs(inside.z) < teamBase.boxCollider.size.z * 0.5f)
                         {
-                            player.enableCharacterSwitch = true;
+                            player.allowedCharacterSwitch = true;
                             break;
                         }
                     }

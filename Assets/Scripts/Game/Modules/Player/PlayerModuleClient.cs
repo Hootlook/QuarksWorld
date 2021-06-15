@@ -2,13 +2,35 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace QuarksWorld
+namespace QuarksWorld.Systems
 {
     public class PlayerModuleClient 
     {
-        public PlayerModuleClient(GameWorld world)
+        public PlayerModuleClient(GameWorld gameWorld)
         {
-            this.world = world;
+            world = gameWorld;
+
+            cameraSystem = new PlayerCameraSystem(gameWorld);
+        }
+
+        public void CameraUpdate()  
+        {
+            cameraSystem.Update();
+        }
+
+        public void Update()
+        {
+            // // Find player with correct player id
+            // var playerStateArray = PlayerState.List;
+            // for (var playerIndex = 0; playerIndex < playerStateArray.Count; playerIndex++)
+            // {
+            //     if (playerStateArray[playerIndex].id == localPlayer.id)
+            //     {
+            //         localPlayer.playerState = playerStateArray[playerIndex];
+            //         GameDebug.Log($"DONE");
+            //         break;
+            //     }
+            // }
         }
 
         public void Shutdown()
@@ -17,11 +39,10 @@ namespace QuarksWorld
                 world.RequestDespawn(localPlayer.gameObject);
         }
 
-        public LocalPlayer RegisterLocalPlayer(int playerId)
+        public LocalPlayer RegisterLocalPlayer()
         {
             var prefab = Resources.Load<LocalPlayer>("Prefabs/LocalPlayer");
             localPlayer = world.Spawn<LocalPlayer>(prefab.gameObject);
-            localPlayer.playerId = playerId;
             localPlayer.command.lookPitch = 90;
 
             return localPlayer;
@@ -55,7 +76,7 @@ namespace QuarksWorld
         }
         public static void StoreCommand(LocalPlayer localPlayer, int tick)
         {
-            if (localPlayer.playerState == null && PlayerState.ResolveLocalPlayer(ref localPlayer.playerState))
+            if (localPlayer.playerState == null)
                 return;
 
             localPlayer.command.tick = tick;
@@ -91,6 +112,8 @@ namespace QuarksWorld
         }
 
         readonly GameWorld world;
+        readonly PlayerCameraSystem cameraSystem;
+
         LocalPlayer localPlayer;
     }
 }

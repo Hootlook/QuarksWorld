@@ -10,19 +10,22 @@ namespace QuarksWorld
 {
     public class ClientGameWorld
     {
-        public ClientGameWorld(GameWorld world, BundledResourceManager resourceSystem)
+        public ClientGameWorld(GameWorld world, BundledResourceManager resources, int clientId)
         {
             gameWorld = world;
 
-            levelCameraSystem = new LevelCameraSystem();
             playerModule = new PlayerModuleClient(gameWorld);
+
+            localPlayer = playerModule.RegisterLocalPlayer();
+
+            spectatorSystem = new SpectatorSystem(gameWorld, localPlayer);
             snapshotSystem = new SnapshotInterpolationClientSystem();
         }
 
         public void Shutdown()
         {
-            levelCameraSystem.Shutdown();
             snapshotSystem.Shutdown();
+            playerModule.Shutdown();
         }
 
         public void Update()
@@ -33,15 +36,16 @@ namespace QuarksWorld
             gameWorld.FrameDuration = Time.deltaTime;
             gameWorld.lastServerTick = NetworkTime.time;
 
-            levelCameraSystem.Update();
             snapshotSystem.Update();
+            spectatorSystem.Update();
+            playerModule.Update();
 
             gameWorld.ProcessDespawns();
         }
 
-        public void RegisterLocalPlayer(int playerId)
+        public void LateUpdate()
         {
-            localPlayer = playerModule.RegisterLocalPlayer(playerId);
+            playerModule.CameraUpdate();
         }
 
         // public float frameTimeScale = 1.0f;
@@ -149,8 +153,8 @@ namespace QuarksWorld
         LocalPlayer localPlayer;
 
         readonly PlayerModuleClient playerModule;
+        readonly SpectatorSystem spectatorSystem;
         readonly SnapshotInterpolationClientSystem snapshotSystem;
-        readonly LevelCameraSystem levelCameraSystem;
     }
 
     public class ClientGameLoop : Game.IGameLoop
@@ -177,7 +181,7 @@ namespace QuarksWorld
             stateMachine.Add(ClientState.Loading, EnterLoadingState, UpdateLoadingState, null);
             stateMachine.Add(ClientState.Playing, EnterPlayingState, UpdatePlayingState, LeavePlayingState);
 
-            stateMachine.SwitchTo(ClientState.Connecting);
+            stateMachine.SwitchTo(ClientState.Browsing);
 
             gameWorld = new GameWorld("ClientWorld");
 
@@ -194,8 +198,7 @@ namespace QuarksWorld
         {
             Console.RemoveCommandsWithTag(this.GetHashCode());
 
-            NetworkClient.Disconnect();
-            NetworkClient.Shutdown();
+            Disconnect();
 
             gameWorld.Shutdown();
 
@@ -207,7 +210,10 @@ namespace QuarksWorld
             stateMachine.Update();
         }
 
-        public void LateUpdate() { }
+        public void LateUpdate() 
+        {
+            clientWorld?.LateUpdate();
+        }
 
         public void FixedUpdate() { }
 
@@ -226,12 +232,13 @@ namespace QuarksWorld
         void OnConnect()
         {
             NetworkClient.connection.isAuthenticated = true;
+
+            stateMachine.SwitchTo(ClientState.Loading);
         }
 
         void OnDisconnect()
         {
-            NetworkClient.Disconnect();
-            NetworkClient.Shutdown();
+            Disconnect("Disconnected by server");
 
             stateMachine.SwitchTo(ClientState.Browsing);
         }
@@ -279,35 +286,7 @@ namespace QuarksWorld
             clientState = ClientState.Connecting;
         }
 
-        void UpdateConnectingState()
-        {
-            switch (NetworkClient.connectState)
-            {
-                case ConnectState.Connected:
-                    gameMessage = "Waiting for map info";
-                    break;
-                case ConnectState.Connecting:
-                    // Do nothing; just wait for either success or failure
-                    break;
-                case ConnectState.None:
-                case ConnectState.Disconnected:
-                    if (connectRetryCount < 2)
-                    {
-                        connectRetryCount++;
-                        gameMessage = string.Format("Trying to connect to {0} (attempt #{1})...", targetServer, connectRetryCount);
-                        GameDebug.Log(gameMessage);
-                        NetworkClient.Connect(targetServer);
-                    }
-                    else
-                    {
-                        gameMessage = "Failed to connect to server";
-                        GameDebug.Log(gameMessage);
-                        NetworkClient.Disconnect();
-                        stateMachine.SwitchTo(ClientState.Browsing);
-                    }
-                    break;
-            }
-        }
+        void UpdateConnectingState() { }
 
         void EnterLoadingState()
         {
@@ -315,6 +294,8 @@ namespace QuarksWorld
 
             GameDebug.Assert(clientWorld == null);
             GameDebug.Assert(NetworkClient.isConnected);
+
+            GameDebug.Log("Awaiting server info");
 
             clientState = ClientState.Loading;
         }
@@ -342,7 +323,7 @@ namespace QuarksWorld
                 if (!Game.game.levelManager.LoadLevel(levelName))
                 {
                     disconnectReason = string.Format("could not load requested level '{0}'", levelName);
-                    NetworkClient.Disconnect();
+                    Disconnect(disconnectReason);
                     return;
                 }
                 level = Game.game.levelManager.currentLevel;
@@ -360,20 +341,20 @@ namespace QuarksWorld
         {
             GameDebug.Assert(clientWorld == null && Game.game.levelManager.IsCurrentLevelLoaded());
 
-            resourceSystem = new BundledResourceManager(gameWorld, "BundledResources/Client");
+            resources = new BundledResourceManager(gameWorld, "BundledResources/Client");
 
-            clientWorld = new ClientGameWorld(gameWorld, resourceSystem);
+            clientWorld = new ClientGameWorld(gameWorld, resources, NetworkClient.connection.connectionId);
 
-            clientWorld.RegisterLocalPlayer(NetworkClient.connection.connectionId);
-
-            var assetRegistry = resourceSystem.GetResourceRegistry<NetworkedEntityRegistry>();
+            var assetRegistry = resources.GetResourceRegistry<NetworkedEntityRegistry>();
 
             foreach (var entry in assetRegistry.entries)
-               NetworkClient.RegisterSpawnHandler(entry.guid.GetGuid(), resourceSystem.CreateEntity, gameWorld.RequestDespawn);
+               NetworkClient.RegisterSpawnHandler(entry.guid.GetGuid(), resources.CreateEntity, gameWorld.RequestDespawn);
 
             if (!NetworkClient.ready) NetworkClient.Ready();
 
             NetworkClient.AddPlayer();
+
+            GameDebug.Log("Connected !");
 
             clientState = ClientState.Playing;
         }
@@ -388,7 +369,7 @@ namespace QuarksWorld
             }
 
             if (Game.Input.GetKeyUp(KeyCode.O))
-                Rpc("jointeam -1");
+                Rpc("jointeam Red");
 
             if (Game.Input.GetKeyUp(KeyCode.P))
                 Rpc("jointeam 0");
@@ -401,7 +382,7 @@ namespace QuarksWorld
             clientWorld.Shutdown();
             clientWorld = null;
 
-            resourceSystem.Shutdown();
+            resources.Shutdown();
 
             gameWorld.Shutdown();
             gameWorld = new GameWorld("ClientWorld");
@@ -419,12 +400,19 @@ namespace QuarksWorld
             {
                 targetServer = args.Length > 0 ? args[0] : "127.0.0.1";
                 stateMachine.SwitchTo(ClientState.Connecting);
+                NetworkClient.Connect(targetServer);
+
+                gameMessage = string.Format("Trying to connect to {0}...", targetServer);
+                GameDebug.Log(gameMessage);
             }
             else if (stateMachine.CurrentState() == ClientState.Connecting)
             {
-                NetworkClient.Disconnect();
+                Disconnect();
                 targetServer = args.Length > 0 ? args[0] : "127.0.0.1";
-                connectRetryCount = 0;
+                NetworkClient.Connect(targetServer);
+
+                gameMessage = string.Format("Retrying {0}...", targetServer);
+                GameDebug.Log(gameMessage);
             }
             else
             {
@@ -435,16 +423,23 @@ namespace QuarksWorld
         void CmdDisconnect(string[] args)
         {
             disconnectReason = "user manually disconnected";
-            NetworkClient.Disconnect();
+            Disconnect(disconnectReason);
             stateMachine.SwitchTo(ClientState.Browsing);
         }
 
         #endregion
 
+        void Disconnect(string reason = "")
+        {
+            NetworkClient.Disconnect();
+            NetworkClient.Shutdown();
+
+            if (!string.IsNullOrEmpty(reason))
+                GameDebug.Log(reason);
+        }
+
         enum ClientState { Browsing, Connecting, Loading, Playing }
-
         StateMachine<ClientState> stateMachine;
-
         ClientState clientState;
 
         string levelName;
@@ -452,9 +447,8 @@ namespace QuarksWorld
         string disconnectReason;
         string gameMessage = $"Welcome to {Application.productName} !";
         string targetServer = "127.0.0.1";
-        int connectRetryCount;
         
-        BundledResourceManager resourceSystem;
+        BundledResourceManager resources;
         ClientGameWorld clientWorld;
         GameWorld gameWorld;
     }
