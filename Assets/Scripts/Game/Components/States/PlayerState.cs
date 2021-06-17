@@ -52,15 +52,15 @@ namespace QuarksWorld
             return false;
         }
 
-        public static PlayerState localPlayerState;
+        public static PlayerState localPlayer;
 
         void Start() => List.Add(this); 
 
         void OnDestroy() => List.Remove(this); 
 
-        public override void OnStartAuthority() => localPlayerState = this;
+        public override void OnStartAuthority() => localPlayer = this;
         
-        public override void OnStopAuthority() => localPlayerState = null;
+        public override void OnStopAuthority() => localPlayer = null;
         
         public static List<PlayerState> List = new List<PlayerState>();
     }

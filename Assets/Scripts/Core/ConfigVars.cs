@@ -10,8 +10,19 @@ namespace QuarksWorld
     {
         public string Name = null;
         public string DefaultValue = "";
-        public ConfigVar.Flags Flags = ConfigVar.Flags.None;
+        public Flags Flags = Flags.None;
         public string Description = "";
+    }
+
+    [Flags]
+    public enum Flags
+    {
+        None = 0x0,       // None
+        Save = 0x1,       // Causes the cvar to be save to settings.cfg
+        Cheat = 0x2,      // Consider this a cheat var. Can only be set if cheats enabled
+        ServerInfo = 0x4, // These vars are sent to clients when connecting and when changed
+        ClientInfo = 0x8, // These vars are sent to server when connecting and when changed
+        User = 0x10,      // User created variable
     }
 
     public class ConfigVar
@@ -75,17 +86,6 @@ namespace QuarksWorld
                 return;
             }
             ConfigVars.Add(cvar.name, cvar);
-        }
-
-        [Flags]
-        public enum Flags
-        {
-            None = 0x0,       // None
-            Save = 0x1,       // Causes the cvar to be save to settings.cfg
-            Cheat = 0x2,      // Consider this a cheat var. Can only be set if cheats enabled
-            ServerInfo = 0x4, // These vars are sent to clients when connecting and when changed
-            ClientInfo = 0x8, // These vars are sent to server when connecting and when changed
-            User = 0x10,      // User created variable
         }
 
         public ConfigVar(string name, string description, string defaultValue, Flags flags = Flags.None)

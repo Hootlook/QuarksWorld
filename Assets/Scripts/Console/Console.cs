@@ -146,7 +146,7 @@ namespace QuarksWorld
             }
             else if (ConfigVar.ConfigVars.TryGetValue(commandName, out configVar))
             {
-                if (configVar.flags == ConfigVar.Flags.Cheat && Game.allowCheats.BoolValue)
+                if (configVar.flags == Flags.Cheat && Game.allowCheats.BoolValue)
                     OutputString("Cheats are requiered for this change", clientId);
 
                 if (tokens.Count == 2)

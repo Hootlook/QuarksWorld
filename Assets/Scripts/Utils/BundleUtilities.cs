@@ -6,7 +6,7 @@ namespace QuarksWorld
 {
     public static class SimpleBundleManager
     {
-        [ConfigVar(Name = "resources.runtimebundlepath", DefaultValue = "AssetBundles", Description = "Asset bundle folder", Flags = ConfigVar.Flags.ServerInfo)]
+        [ConfigVar(Name = "resources.runtimebundlepath", DefaultValue = "AssetBundles", Description = "Asset bundle folder", Flags = Flags.ServerInfo)]
         public static ConfigVar runtimeBundlePath;
 
         public static string assetBundleFolder = "AssetBundles";

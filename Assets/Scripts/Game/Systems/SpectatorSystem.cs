@@ -9,15 +9,16 @@ namespace QuarksWorld.Systems
         GameObject controlledEntity;
         Spectator spectator;
 
-        public SpectatorSystem(GameWorld world, LocalPlayer player)
+        public SpectatorSystem(GameWorld world)
         {
             gameWorld = world;
-            localPlayer = player;
         }
 
         public void Update()
         {
-            if (localPlayer.controlledEntity == null)
+            var localPlayer = PlayerState.localPlayer;
+
+            if (!localPlayer || localPlayer.controlledEntity == null)
                 return;
 
             if (localPlayer.controlledEntity != controlledEntity)
@@ -40,17 +41,16 @@ namespace QuarksWorld.Systems
             var moveDir = forward * Mathf.Cos(command.moveYaw * Mathf.Deg2Rad) + right * Mathf.Sin(command.moveYaw * Mathf.Deg2Rad);
             spectator.position += moveDir * maxVel * command.moveMagnitude;
 
-            var playerCameras = PlayerCamera.List;
-            for (int i = 0; i < playerCameras.Count; i++)
-            {
-                var cameraSettings = playerCameras[i].cameraSettings;
-                cameraSettings.isEnabled = true;
-                cameraSettings.position = spectator.position;
-                cameraSettings.rotation = spectator.rotation;
-            }
+            // var playerCameras = PlayerCamera.List;
+            // for (int i = 0; i < playerCameras.Count; i++)
+            // {
+            //     var cameraSettings = playerCameras[i].cameraSettings;
+            //     cameraSettings.isEnabled = true;
+            //     cameraSettings.position = spectator.position;
+            //     cameraSettings.rotation = spectator.rotation;
+            // }
         }
 
-        readonly LocalPlayer localPlayer;
         readonly GameWorld gameWorld;
     }
 }

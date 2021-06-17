@@ -6,9 +6,21 @@ namespace QuarksWorld
 {
     public class PlayerCameraSettings : MonoBehaviour
     {
-        public bool isEnabled;
+        public bool isEnabled = true;
+        public bool lockToTransform;
         public Vector3 position;
         public Quaternion rotation;
-        public float fieldOfView;
+        public float fieldOfView = 60;
+
+        GameEntity entityRef;
+
+        private void Awake()
+        {
+            entityRef = Contexts.sharedInstance.game.CreateEntity();
+            entityRef.AddPlayerCameraSetting(this);
+        }
+
+        private void OnDestroy() => entityRef.Destroy();
+
     }
 }

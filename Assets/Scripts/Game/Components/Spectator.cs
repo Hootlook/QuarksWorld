@@ -10,5 +10,14 @@ namespace QuarksWorld
     {
         [SyncVar] public Vector3 position;
         [SyncVar] public Quaternion rotation;
+
+        private void Update()
+        {
+            if (hasAuthority)
+            {
+                transform.position = position;
+                transform.rotation = rotation;
+            }
+        }
     }
 }

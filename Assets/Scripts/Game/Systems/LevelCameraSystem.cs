@@ -12,23 +12,15 @@ namespace QuarksWorld.Systems
         public LevelCameraSystem()
         {
             cameraSpots = Object.FindObjectsOfType<CameraSpot>();
-            
-            prefab = (GameObject)Resources.Load("Prefabs/LevelCamera");
 
-            var cameraObj = Object.Instantiate(prefab);
-            cameraObj.name = prefab.name;
+            cameraSettings = new GameObject("LevelCamera").AddComponent<PlayerCameraSettings>();
 
-            camera = cameraObj.GetComponent<Camera>();
-
-            if (camera)
-                Game.game.PushCamera(camera);
-
-            Console.AddCommand("debug.servercam_shots", CmdServercamShots, "Grab a screenshot from each of the servercams");
+            Console.AddCommand("debug.levelcam_shots", CmdServercamShots, "Grab a screenshot from each of the levelcam");
         }
 
         public void Update()
         {
-            if (camera == null || !camera.enabled)
+            if (cameraSettings == null || !cameraSettings.isEnabled)
                 return;
 
             var t = Time.realtimeSinceStartup;
@@ -47,7 +39,7 @@ namespace QuarksWorld.Systems
                 return;
             }
 
-            camera.transform.localEulerAngles = originalOrientation + new Vector3(
+            cameraSettings.rotation.eulerAngles = originalOrientation + new Vector3(
                     Mathf.Sin(t * IdleCycle.x) * IdleLevel.x,
                     Mathf.Sin(t * IdleCycle.y) * IdleLevel.y,
                     Mathf.Sin(t * IdleCycle.z) * IdleLevel.z
@@ -61,25 +53,22 @@ namespace QuarksWorld.Systems
         }
 
         void Cleanup()
-        {
-            Game.game.PopCamera(camera);
-            
+        {            
             cameraSpots = null;
-            camera = null;
             nextCameraSpot = 0;
         }
 
         void NextCamera()
         {
-            if (camera == null || cameraSpots == null || cameraSpots.Length == 0)
+            if (cameraSettings == null || cameraSpots == null || cameraSpots.Length == 0)
                 return;
 
             var spot = cameraSpots[nextCameraSpot];
 
-            camera.transform.position = spot.transform.position;
-            camera.transform.rotation = spot.transform.rotation;
+            cameraSettings.position = spot.transform.position;
+            cameraSettings.rotation = spot.transform.rotation;
 
-            originalOrientation = camera.transform.localEulerAngles;
+            originalOrientation = cameraSettings.rotation.eulerAngles;
             nextSwitchTime = Time.realtimeSinceStartup + 5.0f;
             nextCameraSpot = (nextCameraSpot + 1) % cameraSpots.Length;
         }
@@ -109,7 +98,7 @@ namespace QuarksWorld.Systems
         private static readonly Vector3 IdleCycle = new Vector3(1.0f, 2.0f, 0.5f);
         private static readonly Vector3 IdleLevel = new Vector3(0.1f, 0.3f, 0.3f);
 
-        private Camera camera;
+        private PlayerCameraSettings cameraSettings;
         private GameObject prefab;
 
         private Vector3 originalOrientation;

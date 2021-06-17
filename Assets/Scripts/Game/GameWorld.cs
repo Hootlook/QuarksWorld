@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine.Profiling;
 using Object = UnityEngine.Object;
 using System;
+using Entitas;
 
 namespace QuarksWorld
 {

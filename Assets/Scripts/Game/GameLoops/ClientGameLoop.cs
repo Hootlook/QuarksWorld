@@ -10,22 +10,21 @@ namespace QuarksWorld
 {
     public class ClientGameWorld
     {
-        public ClientGameWorld(GameWorld world, BundledResourceManager resources, int clientId)
+        public ClientGameWorld(GameWorld world, BundledResourceManager resources)
         {
             gameWorld = world;
 
             playerModule = new PlayerModuleClient(gameWorld);
-
-            localPlayer = playerModule.RegisterLocalPlayer();
-
-            spectatorSystem = new SpectatorSystem(gameWorld, localPlayer);
+            spectatorSystem = new SpectatorSystem(gameWorld);
             snapshotSystem = new SnapshotInterpolationClientSystem();
+            levelCameraSystem = new LevelCameraSystem();
         }
 
         public void Shutdown()
         {
             snapshotSystem.Shutdown();
             playerModule.Shutdown();
+            levelCameraSystem.Shutdown();
         }
 
         public void Update()
@@ -37,8 +36,9 @@ namespace QuarksWorld
             gameWorld.lastServerTick = NetworkTime.time;
 
             snapshotSystem.Update();
-            spectatorSystem.Update();
+            // spectatorSystem.Update();
             playerModule.Update();
+            levelCameraSystem.Update();
 
             gameWorld.ProcessDespawns();
         }
@@ -150,10 +150,10 @@ namespace QuarksWorld
         GameTime renderTime = new GameTime(60);
         GameTime predictedTime = new GameTime(60);
         GameWorld gameWorld;
-        LocalPlayer localPlayer;
 
         readonly PlayerModuleClient playerModule;
         readonly SpectatorSystem spectatorSystem;
+        readonly LevelCameraSystem levelCameraSystem;
         readonly SnapshotInterpolationClientSystem snapshotSystem;
     }
 
@@ -161,13 +161,13 @@ namespace QuarksWorld
     {
         GameObject gameObject;
 
-        [ConfigVar(Name = "cl.updaterate", DefaultValue = "30000", Description = "Max bytes/sec client wants to receive", Flags = ConfigVar.Flags.ClientInfo)]
+        [ConfigVar(Name = "cl.updaterate", DefaultValue = "30000", Description = "Max bytes/sec client wants to receive", Flags = Flags.ClientInfo)]
         public static ConfigVar clientUpdateRate;
 
-        [ConfigVar(Name = "cl.updateinterval", DefaultValue = "3", Description = "Snapshot sendrate requested by client", Flags = ConfigVar.Flags.ClientInfo)]
+        [ConfigVar(Name = "cl.updateinterval", DefaultValue = "3", Description = "Snapshot sendrate requested by client", Flags = Flags.ClientInfo)]
         public static ConfigVar clientUpdateInterval;
 
-        [ConfigVar(Name = "cl.playername", DefaultValue = "MingeBag", Description = "Name of player", Flags = ConfigVar.Flags.ClientInfo | ConfigVar.Flags.Save)]
+        [ConfigVar(Name = "cl.playername", DefaultValue = "MingeBag", Description = "Name of player", Flags = Flags.ClientInfo | Flags.Save)]
         public static ConfigVar clientPlayerName;
 
         public bool Init(string[] args)
@@ -343,7 +343,7 @@ namespace QuarksWorld
 
             resources = new BundledResourceManager(gameWorld, "BundledResources/Client");
 
-            clientWorld = new ClientGameWorld(gameWorld, resources, NetworkClient.connection.connectionId);
+            clientWorld = new ClientGameWorld(gameWorld, resources);
 
             var assetRegistry = resources.GetResourceRegistry<NetworkedEntityRegistry>();
 
