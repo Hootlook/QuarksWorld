@@ -143,10 +143,6 @@ namespace QuarksWorld.Systems
                     }
                 }
             }
-
-            // Push scores to gameMode that is synchronized to client
-            gameModeState.teamScore0 = gameModeSystem.teams[0].score;
-            gameModeState.teamScore1 = gameModeSystem.teams[1].score;
         }
 
         public void OnPlayerJoin(PlayerState player)

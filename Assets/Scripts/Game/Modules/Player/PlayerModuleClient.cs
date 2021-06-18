@@ -9,13 +9,6 @@ namespace QuarksWorld.Systems
         public PlayerModuleClient(GameWorld gameWorld)
         {
             world = gameWorld;
-
-            cameraSystem = new PlayerCameraSystem(gameWorld);
-        }
-
-        public void CameraUpdate()  
-        {
-            cameraSystem.Execute();
         }
 
         public void Update() { }
@@ -78,7 +71,6 @@ namespace QuarksWorld.Systems
         }
 
         readonly GameWorld world;
-        readonly PlayerCameraSystem cameraSystem;
 
         public UserCommand command = UserCommand.defaultCommand;
         public StateBuffer<UserCommand> commandBuffer = new StateBuffer<UserCommand>(ClientCommandBufferSize);

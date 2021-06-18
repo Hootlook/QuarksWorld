@@ -14,6 +14,7 @@ namespace QuarksWorld
         {
             gameWorld = world;
 
+            cameraSystem = new CameraSystem(gameWorld);
             playerModule = new PlayerModuleClient(gameWorld);
             spectatorSystem = new SpectatorSystem(gameWorld);
             snapshotSystem = new SnapshotInterpolationClientSystem();
@@ -45,7 +46,7 @@ namespace QuarksWorld
 
         public void LateUpdate()
         {
-            playerModule.CameraUpdate();
+            cameraSystem.Execute();
         }
 
         // public float frameTimeScale = 1.0f;
@@ -151,6 +152,7 @@ namespace QuarksWorld
         GameTime predictedTime = new GameTime(60);
         GameWorld gameWorld;
 
+        readonly CameraSystem cameraSystem;
         readonly PlayerModuleClient playerModule;
         readonly SpectatorSystem spectatorSystem;
         readonly LevelCameraSystem levelCameraSystem;
@@ -372,7 +374,7 @@ namespace QuarksWorld
                 Rpc("jointeam Red");
 
             if (Game.Input.GetKeyUp(KeyCode.P))
-                Rpc("jointeam 0");
+                Rpc("jointeam spectator");
 
             clientWorld.Update();
         }

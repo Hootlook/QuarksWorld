@@ -4,7 +4,7 @@ namespace QuarksWorld
 {
     public class PlayerCameraSettingComponent : IComponent
     {
-        public PlayerCameraSettings refSetting;
+        public CameraSettings refSetting;
     }
 }
 

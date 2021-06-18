@@ -38,6 +38,7 @@ namespace QuarksWorld
         // Character control
         public int characterType = -1;
         public int requestedCharacterType = -1;
+        public int requestedTeamIndex= -1;
 
         public static bool ResolveLocalPlayer(ref PlayerState assignTo)
         {

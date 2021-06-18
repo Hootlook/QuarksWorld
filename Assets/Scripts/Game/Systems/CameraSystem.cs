@@ -5,7 +5,7 @@ using Entitas;
 
 namespace QuarksWorld.Systems
 {
-    public class PlayerCameraSystem : IExecuteSystem
+    public class CameraSystem : IExecuteSystem
     {
         [ConfigVar(Name = "debug.cameramove", Description = "Show graphs of first person camera rotation", DefaultValue = "0")]
         public static ConfigVar debugCameraMove;
@@ -16,13 +16,13 @@ namespace QuarksWorld.Systems
 
         Camera camera;
 
-        public PlayerCameraSystem(GameWorld gameWorld)
+        public CameraSystem(GameWorld gameWorld)
         {
             world = gameWorld;
 
-            cameraPrefab = Resources.Load<PlayerCamera>("Prefabs/PlayerCamera");
+            cameraPrefab = (GameObject)Resources.Load("Prefabs/MainCamera");
 
-            camera = world.Spawn<Camera>(cameraPrefab.gameObject);
+            camera = world.Spawn<Camera>(cameraPrefab);
             camera.gameObject.SetActive(false);
             camera.name = cameraPrefab.name;
 
@@ -95,7 +95,7 @@ namespace QuarksWorld.Systems
             }
         }
 
-        PlayerCamera cameraPrefab;
+        GameObject cameraPrefab;
         GameWorld world;
 
         float detachedMoveSpeed = 4.0f;

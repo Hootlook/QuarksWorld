@@ -11,14 +11,14 @@ public partial class GameEntity {
     public QuarksWorld.PlayerCameraSettingComponent playerCameraSetting { get { return (QuarksWorld.PlayerCameraSettingComponent)GetComponent(GameComponentsLookup.PlayerCameraSetting); } }
     public bool hasPlayerCameraSetting { get { return HasComponent(GameComponentsLookup.PlayerCameraSetting); } }
 
-    public void AddPlayerCameraSetting(QuarksWorld.PlayerCameraSettings newRefSetting) {
+    public void AddPlayerCameraSetting(QuarksWorld.CameraSettings newRefSetting) {
         var index = GameComponentsLookup.PlayerCameraSetting;
         var component = (QuarksWorld.PlayerCameraSettingComponent)CreateComponent(index, typeof(QuarksWorld.PlayerCameraSettingComponent));
         component.refSetting = newRefSetting;
         AddComponent(index, component);
     }
 
-    public void ReplacePlayerCameraSetting(QuarksWorld.PlayerCameraSettings newRefSetting) {
+    public void ReplacePlayerCameraSetting(QuarksWorld.CameraSettings newRefSetting) {
         var index = GameComponentsLookup.PlayerCameraSetting;
         var component = (QuarksWorld.PlayerCameraSettingComponent)CreateComponent(index, typeof(QuarksWorld.PlayerCameraSettingComponent));
         component.refSetting = newRefSetting;

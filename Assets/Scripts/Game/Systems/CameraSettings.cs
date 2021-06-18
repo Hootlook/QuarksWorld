@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace QuarksWorld
 {
-    public class PlayerCameraSettings : MonoBehaviour
+    public class CameraSettings : MonoBehaviour
     {
         public bool isEnabled = true;
         public bool lockToTransform;

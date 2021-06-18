@@ -13,6 +13,7 @@ namespace QuarksWorld
         {
             gameWorld = world;
 
+            cameraSystem = new CameraSystem(gameWorld);
             levelCameraSystem = new LevelCameraSystem();
             playerModule = new PlayerModuleServer(gameWorld, resourceSystem);
             gameModeSystem = new GameModeSystemServer(gameWorld, resourceSystem);
@@ -41,6 +42,11 @@ namespace QuarksWorld
             gameModeSystem.Update();
         }
 
+        internal void LateUpdate()
+        {
+            cameraSystem.Execute();
+        }
+
         internal void SpawnPlayer(NetworkConnection conn)
         {
             playerModule.SpawnPlayer(conn);
@@ -53,12 +59,13 @@ namespace QuarksWorld
             if (player != null) 
             {
                 gameModeSystem.AssignTeam(player, team);
-                gameModeSystem.RequestNextChar(player);
+                gameModeSystem.AssignCharacter(player, role);
             }
         }
 
         GameWorld gameWorld;
-        
+
+        readonly CameraSystem cameraSystem;        
         readonly PlayerModuleServer playerModule;
         readonly SnapshotInterpolationServerSystem snapshotSystem;
         readonly GameModeSystemServer gameModeSystem;
@@ -132,7 +139,10 @@ namespace QuarksWorld
 
         public void FixedUpdate() { }
 
-        public void LateUpdate() { }
+        public void LateUpdate() 
+        {
+            serverWorld?.LateUpdate();
+        }
 
         void RegisterMessages()
         {

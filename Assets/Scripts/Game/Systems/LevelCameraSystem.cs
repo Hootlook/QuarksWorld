@@ -13,7 +13,7 @@ namespace QuarksWorld.Systems
         {
             cameraSpots = Object.FindObjectsOfType<CameraSpot>();
 
-            cameraSettings = new GameObject("LevelCamera").AddComponent<PlayerCameraSettings>();
+            cameraSettings = new GameObject("LevelCamera").AddComponent<CameraSettings>();
 
             Console.AddCommand("debug.levelcam_shots", CmdServercamShots, "Grab a screenshot from each of the levelcam");
         }
@@ -98,7 +98,7 @@ namespace QuarksWorld.Systems
         private static readonly Vector3 IdleCycle = new Vector3(1.0f, 2.0f, 0.5f);
         private static readonly Vector3 IdleLevel = new Vector3(0.1f, 0.3f, 0.3f);
 
-        private PlayerCameraSettings cameraSettings;
+        private CameraSettings cameraSettings;
         private GameObject prefab;
 
         private Vector3 originalOrientation;
