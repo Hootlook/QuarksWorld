@@ -7,7 +7,7 @@ using UnityEngine;
 namespace QuarksWorld
 {
     [CreateAssetMenu(fileName = "NetworkedEntityRegistry", menuName = "QuarksWorld/NetworkedEntity/NetworkedEntityRegistry")]
-    public class NetworkedEntityRegistry : RegistryBase
+    public class ReplicatedEntityRegistry : RegistryBase
     {
         [Serializable]
         public class Entry
@@ -15,7 +15,7 @@ namespace QuarksWorld
             public WeakAssetReference guid;
             // Each entry has either a asset reference or factory. Never both
             public WeakAssetReference prefab = new WeakAssetReference();
-            public NetworkedEntityFactory factory;
+            public ReplicatedEntityFactory factory;
         }
 
         public List<Entry> entries = new List<Entry>();
@@ -116,7 +116,7 @@ namespace QuarksWorld
             //EditorUtility.SetDirty(this);
         }
 
-        public static NetworkedEntityRegistry GetNetworkedEntityRegistry()
+        public static ReplicatedEntityRegistry GetNetworkedEntityRegistry()
         {
             var registryGuids = AssetDatabase.FindAssets("t:NetworkedEntityRegistry");
             if (registryGuids == null || registryGuids.Length == 0)
@@ -132,7 +132,7 @@ namespace QuarksWorld
 
             var guid = registryGuids[0];
             var registryPath = AssetDatabase.GUIDToAssetPath(guid);
-            var registry = AssetDatabase.LoadAssetAtPath<NetworkedEntityRegistry>(registryPath);
+            var registry = AssetDatabase.LoadAssetAtPath<ReplicatedEntityRegistry>(registryPath);
             return registry;
         }
 

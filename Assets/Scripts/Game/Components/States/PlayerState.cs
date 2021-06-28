@@ -40,18 +40,7 @@ namespace QuarksWorld
         public int requestedCharacterType = -1;
         public int requestedTeamIndex= -1;
 
-        public static bool ResolveLocalPlayer(ref PlayerState assignTo)
-        {
-            var localPlayer = PlayerState.List.Find(p => p.isLocalPlayer == true);
 
-            if (localPlayer != null)
-            {
-                assignTo = localPlayer;
-                return true;
-            }
-
-            return false;
-        }
 
         public static PlayerState localPlayer;
 

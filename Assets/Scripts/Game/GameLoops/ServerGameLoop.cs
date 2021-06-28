@@ -17,14 +17,12 @@ namespace QuarksWorld
             levelCameraSystem = new LevelCameraSystem();
             playerModule = new PlayerModuleServer(gameWorld, resourceSystem);
             gameModeSystem = new GameModeSystemServer(gameWorld, resourceSystem);
-            snapshotSystem = new SnapshotInterpolationServerSystem();
             movableSystem = new MovableSystemServer();
         }
 
         internal void Shutdown()
         {
             levelCameraSystem.Shutdown();
-            snapshotSystem.Shutdown();
             movableSystem.Shutdown();
             playerModule.Shutdown();
             gameModeSystem.Shutdown();
@@ -37,7 +35,6 @@ namespace QuarksWorld
             gameWorld.FrameDuration = gameWorld.worldTime.TickInterval;
             
             levelCameraSystem.Update();
-            snapshotSystem.Update();
             movableSystem.Update();
             gameModeSystem.Update();
         }
@@ -65,12 +62,11 @@ namespace QuarksWorld
 
         GameWorld gameWorld;
 
-        readonly CameraSystem cameraSystem;        
         readonly PlayerModuleServer playerModule;
-        readonly SnapshotInterpolationServerSystem snapshotSystem;
         readonly GameModeSystemServer gameModeSystem;
         readonly MovableSystemServer movableSystem;
         readonly LevelCameraSystem levelCameraSystem;
+        readonly CameraSystem cameraSystem;        
     }
 
     public class ServerGameLoop : Game.IGameLoop
@@ -132,12 +128,22 @@ namespace QuarksWorld
             gameWorld = null;                      
         }
 
+        float timer;
         public void Update()
         {
             stateMachine.Update();
+
+            timer += Time.deltaTime;
+            while (timer >= Time.fixedDeltaTime)
+            {
+                timer -= Time.fixedDeltaTime;
+
+                Physics.Simulate(Time.fixedDeltaTime);
+                Physics.SyncTransforms();
+            }
         }
 
-        public void FixedUpdate() { }
+        public void FixedUpdate() {  }
 
         public void LateUpdate() 
         {
@@ -288,6 +294,14 @@ namespace QuarksWorld
         }
 
         enum ServerState { Idle, Loading, Active }
+
+        class ClientInfo
+        {
+            public string playerName;
+            public int updateInterval;
+        }
+
+        Dictionary<NetworkConnection, ClientInfo> Clients;
 
         StateMachine<ServerState> stateMachine;
         BundledResourceManager resources;

@@ -46,11 +46,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a579cca3d8e329445bbea98c571b2b00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  movableBoxPrototype:
-    val0: 0
-    val1: 0
-    val2: 0
-    val3: 0
   bootCamera: {fileID: 4748025843879484786}
   isHeadless: 0
 --- !u!114 &439692858759554702

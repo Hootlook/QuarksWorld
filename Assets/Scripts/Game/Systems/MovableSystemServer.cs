@@ -47,7 +47,7 @@ namespace QuarksWorld.Systems
             int x = spawnNum % 10 - 5;
             int z = spawnNum / 10 - 5;
 
-            GameObject obj = Object.Instantiate((GameObject)Resources.Load("Prefabs/MovableBox"));
+            GameObject obj = Object.Instantiate((GameObject)Resources.Load("Prefabs/MovableBox"), Vector3.up * 5, Quaternion.identity);
             
             NetworkServer.Spawn(obj);
             movables.Add(obj);

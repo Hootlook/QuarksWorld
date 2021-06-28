@@ -63,8 +63,8 @@ namespace QuarksWorld.Systems
 
             gameModeState.teams = teams;
 
-            var spectatorAssetRef = resources.GetResourceRegistry<NetworkedEntityRegistry>().entries[1].guid;
-            var characterAssetRef = resources.GetResourceRegistry<NetworkedEntityRegistry>().entries[2].guid;
+            var spectatorAssetRef = resources.GetResourceRegistry<ReplicatedEntityRegistry>().entries[1].guid;
+            var characterAssetRef = resources.GetResourceRegistry<ReplicatedEntityRegistry>().entries[2].guid;
 
             spectatorPrefab = (GameObject)resources.GetSingleAssetResource(spectatorAssetRef);
             characterPrefab = (GameObject)resources.GetSingleAssetResource(characterAssetRef);
@@ -210,7 +210,7 @@ namespace QuarksWorld.Systems
                     continue;
                 }
 
-                if (player.controlledEntity.TryGetComponent(out HealthState healthState))
+                if (player.controlledEntity.TryGetComponent(out Health healthState))
                 {
                     // Is character dead ?
                     if (healthState.health == 0)
@@ -238,7 +238,7 @@ namespace QuarksWorld.Systems
                             if (enableRespawning && (world.worldTime.tick - healthState.deathTick) * world.worldTime.TickInterval > respawnDelay.IntValue)
                             {
                                 // Despawn current controlled entity. New entity will be created later
-                                if (player.controlledEntity.GetComponent<CharacterState>())
+                                if (player.controlledEntity.GetComponent<Character>())
                                 {
                                     NetworkServer.Destroy(player.controlledEntity);
                                     world.RequestDespawn(player.controlledEntity);
@@ -368,12 +368,12 @@ namespace QuarksWorld.Systems
 
             NetworkServer.Spawn(characterObj, owner.connectionToClient);
 
-            var character = characterObj.GetComponent<CharacterState>();
+            var character = characterObj.GetComponent<Character>();
             character.teamId = 0;
             character.heroTypeIndex = owner.characterType;
             character.heroTypeData = heroTypeAsset;
             
-            var health = characterObj.GetComponent<HealthState>();
+            var health = characterObj.GetComponent<Health>();
             health.SetMaxHealth(heroTypeAsset.health);
 
             owner.controlledEntity = characterObj;

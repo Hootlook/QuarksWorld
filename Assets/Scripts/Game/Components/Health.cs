@@ -6,7 +6,7 @@ using Mirror;
 
 namespace QuarksWorld
 {
-    public class HealthState : NetworkBehaviour
+    public class Health : NetworkBehaviour
     {
         [SyncVar] public float health;
         [SyncVar] public float maxHealth;

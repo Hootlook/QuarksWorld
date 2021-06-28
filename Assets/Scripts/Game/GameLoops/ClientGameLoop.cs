@@ -17,13 +17,11 @@ namespace QuarksWorld
             cameraSystem = new CameraSystem(gameWorld);
             playerModule = new PlayerModuleClient(gameWorld);
             spectatorSystem = new SpectatorSystem(gameWorld);
-            snapshotSystem = new SnapshotInterpolationClientSystem();
             levelCameraSystem = new LevelCameraSystem();
         }
 
         public void Shutdown()
         {
-            snapshotSystem.Shutdown();
             playerModule.Shutdown();
             levelCameraSystem.Shutdown();
         }
@@ -36,7 +34,6 @@ namespace QuarksWorld
             gameWorld.FrameDuration = Time.deltaTime;
             gameWorld.lastServerTick = NetworkTime.time;
 
-            snapshotSystem.Update();
             // spectatorSystem.Update();
             playerModule.Update();
             levelCameraSystem.Update();
@@ -55,7 +52,7 @@ namespace QuarksWorld
         // {
         //     // Update tick rate (this will only change runtime in test scenarios)
         //     // TODO (petera) consider use ConfigVars with Server flag for this
-        //     if (m_NetworkClient.serverTickRate != predictedTime.TickRate)
+        //     if (NetworkClient.serverTickRate != predictedTime.TickRate)
         //     {
         //         predictedTime.TickRate = m_NetworkClient.serverTickRate;
         //         renderTime.TickRate = m_NetworkClient.serverTickRate;
@@ -156,7 +153,6 @@ namespace QuarksWorld
         readonly PlayerModuleClient playerModule;
         readonly SpectatorSystem spectatorSystem;
         readonly LevelCameraSystem levelCameraSystem;
-        readonly SnapshotInterpolationClientSystem snapshotSystem;
     }
 
     public class ClientGameLoop : Game.IGameLoop
@@ -226,9 +222,6 @@ namespace QuarksWorld
             NetworkClient.RegisterHandler<NotReadyMessage>(OnNotReady);
             NetworkClient.RegisterHandler<SceneMessage>(OnMapUpate, false);
             NetworkClient.RegisterHandler<ConsoleMessage>(OnServerOutput, false);
-
-            // if (playerPrefab != null)
-            //    NetworkClient.RegisterPrefab(playerPrefab);
         }
 
         void OnConnect()
@@ -320,7 +313,6 @@ namespace QuarksWorld
             var level = Game.game.levelManager.currentLevel;
             if (level == null || level.name != levelName)
             {
-                Transport.activeTransport.enabled = false;
 
                 if (!Game.game.levelManager.LoadLevel(levelName))
                 {
@@ -335,7 +327,6 @@ namespace QuarksWorld
             if (level.state == LevelState.Loaded)
             {
                 stateMachine.SwitchTo(ClientState.Playing);
-                Transport.activeTransport.enabled = true;
             }
         }
 
@@ -347,7 +338,10 @@ namespace QuarksWorld
 
             clientWorld = new ClientGameWorld(gameWorld, resources);
 
-            var assetRegistry = resources.GetResourceRegistry<NetworkedEntityRegistry>();
+            var assetRegistry = resources.GetResourceRegistry<ReplicatedEntityRegistry>();
+
+            // foreach (var entry in assetRegistry.entries)
+            //     NetworkClient.RegisterPrefab((GameObject)resources.GetSingleAssetResource(entry.guid));
 
             foreach (var entry in assetRegistry.entries)
                NetworkClient.RegisterSpawnHandler(entry.guid.GetGuid(), resources.CreateEntity, gameWorld.RequestDespawn);
@@ -367,6 +361,7 @@ namespace QuarksWorld
             {
                 gameMessage = disconnectReason != null ? string.Format("Disconnected from server ({0})", disconnectReason) : "Disconnected from server (lost connection)";
                 stateMachine.SwitchTo(ClientState.Browsing);
+                Disconnect(gameMessage);
                 return;
             }
 
@@ -389,7 +384,7 @@ namespace QuarksWorld
             gameWorld.Shutdown();
             gameWorld = new GameWorld("ClientWorld");
 
-            Game.game.levelManager.LoadLevel("empty");
+            Game.game.levelManager.UnloadLevel();
         }
 
         #endregion

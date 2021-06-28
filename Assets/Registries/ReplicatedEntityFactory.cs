@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace QuarksWorld
 {
-    public abstract class NetworkedEntityFactory : ScriptableObject
+    public abstract class ReplicatedEntityFactory : ScriptableObject
     {
         [HideInInspector]
         public WeakAssetReference guid;
@@ -37,8 +37,7 @@ namespace QuarksWorld
     }
 
 #if UNITY_EDITOR
-    public class NetworkedEntityFactoryEditor<T> : Editor
-        where T : NetworkedEntityFactory
+    public class NetworkedEntityFactoryEditor<T> : Editor where T : ReplicatedEntityFactory
     {
         public override void OnInspectorGUI()
         {

@@ -132,7 +132,7 @@ namespace QuarksWorld
                 return gameObject;
             }
 
-            if (resource is NetworkedEntityFactory factory)
+            if (resource is ReplicatedEntityFactory factory)
             {
                 return factory.Create(this, gameWorld);
             }

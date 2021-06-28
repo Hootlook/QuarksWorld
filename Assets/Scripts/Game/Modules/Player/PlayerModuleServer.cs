@@ -9,7 +9,7 @@ namespace QuarksWorld
     {
         public PlayerModuleServer(GameWorld gameWorld, BundledResourceManager resourceSystem)
         {
-            playerStateRef = resourceSystem.GetResourceRegistry<NetworkedEntityRegistry>().entries[0].prefab;
+            playerStateRef = resourceSystem.GetResourceRegistry<ReplicatedEntityRegistry>().entries[0].prefab;
 
             world = gameWorld;
             resources = resourceSystem;

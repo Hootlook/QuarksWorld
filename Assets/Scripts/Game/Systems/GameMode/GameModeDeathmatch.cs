@@ -83,7 +83,7 @@ namespace QuarksWorld.Systems
                             var playerState = players[i];
                             if (playerState.controlledEntity != null)
                             {
-                                var healthState = playerState.GetComponent<HealthState>();
+                                var healthState = playerState.GetComponent<Health>();
                                 healthState.health = 0.0f;
                                 healthState.deathTick = -1;
                             }

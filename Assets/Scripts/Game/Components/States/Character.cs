@@ -6,9 +6,8 @@ using Mirror;
 
 namespace QuarksWorld
 {
-    [RequireComponent(typeof(HealthState))]
     [DisallowMultipleComponent]
-    public class CharacterState : NetworkBehaviour
+    public class Character : NetworkBehaviour
     {
         [NonSerialized] [SyncVar] public int heroTypeIndex;
 

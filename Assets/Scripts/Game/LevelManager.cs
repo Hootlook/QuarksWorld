@@ -64,8 +64,8 @@ namespace QuarksWorld
 
             // This is a pretty ugly hack to handle problems with loading camera and post processing volumes
             // and those not being initalized at the same time. We simply disable the old camera and the 
-            Game.game.TopCamera().enabled = false;
-            //Game.Main.BlackFade(true);
+            // Game.game.TopCamera().enabled = false;
+            // Game.Main.BlackFade(true);
 
             var newLevel = new Level();
             newLevel.name = name;

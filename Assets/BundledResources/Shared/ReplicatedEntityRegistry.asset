@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1fb4a3d83e83e344eabe8e4513addee9, type: 3}
-  m_Name: NetworkedEntityRegistry
+  m_Name: ReplicatedEntityRegistry
   m_EditorClassIdentifier: 
   entries:
   - guid:
@@ -56,4 +56,15 @@ MonoBehaviour:
       val1: 742708387
       val2: 30827224
       val3: 1127272453
+    factory: {fileID: 0}
+  - guid:
+      val0: -1464429183
+      val1: -587955088
+      val2: -5806917
+      val3: -259998110
+    prefab:
+      val0: -1464429183
+      val1: -587955088
+      val2: -5806917
+      val3: -259998110
     factory: {fileID: 0}
