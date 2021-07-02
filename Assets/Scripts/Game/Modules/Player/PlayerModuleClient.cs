@@ -66,7 +66,7 @@ namespace QuarksWorld.Systems
             var commandValid = commandBuffer.TryGetValue(tick, ref command);
             if (commandValid)
             {
-                Mirror.NetworkClient.Send(command);
+                Mirror.NetworkClient.Send(command, Mirror.Channels.Unreliable);
             }
         }
 

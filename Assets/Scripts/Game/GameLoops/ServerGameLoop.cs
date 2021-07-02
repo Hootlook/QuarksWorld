@@ -4,11 +4,26 @@ using Mirror;
 using UnityEngine;
 using QuarksWorld.Systems;
 using UnityEngine.SceneManagement;
+using UnityEngine.Profiling;
 
 namespace QuarksWorld
 {
     internal class ServerGameWorld
     {
+        public int TickRate
+        {
+            get
+            {
+                return gameWorld.worldTime.TickRate;
+            }
+            set
+            {
+                gameWorld.worldTime.TickRate = value;
+            }
+        }
+        public float TickInterval => gameWorld.worldTime.TickInterval;
+        public int WorldTick => gameWorld.worldTime.tick;
+
         internal ServerGameWorld(GameWorld world, BundledResourceManager resourceSystem)
         {
             gameWorld = world;
@@ -28,7 +43,7 @@ namespace QuarksWorld
             gameModeSystem.Shutdown();
         }
 
-        internal void Update()
+        internal void TickUpdate()
         {
             gameWorld.worldTime.tick++;
             gameWorld.worldTime.tickDuration = gameWorld.worldTime.TickInterval;
@@ -58,6 +73,11 @@ namespace QuarksWorld
                 gameModeSystem.AssignTeam(player, team);
                 gameModeSystem.AssignCharacter(player, role);
             }
+        }
+
+        internal void GenerateSnapshot(float deltaTime)
+        {
+
         }
 
         GameWorld gameWorld;
@@ -241,9 +261,23 @@ namespace QuarksWorld
             serverWorld = new ServerGameWorld(gameWorld, resources);
         }
 
+        float nextTickTime;
         void UpdateActiveState()
         {
-            serverWorld.Update();
+            GameDebug.Assert(serverWorld != null);
+
+            int tickCount = 0;
+            while (Game.frameTime > nextTickTime)
+            {
+                tickCount++;
+                serverWorld.TickUpdate();
+
+                Profiler.BeginSample("GenerateSnapshots");
+                serverWorld.GenerateSnapshot(Time.fixedDeltaTime);
+                Profiler.EndSample();
+
+                nextTickTime += serverWorld.TickInterval;
+            }
         }
 
         void LeaveActiveState()

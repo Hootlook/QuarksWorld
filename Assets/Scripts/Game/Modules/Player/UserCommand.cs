@@ -7,16 +7,15 @@ namespace QuarksWorld
     public enum Button : uint
     {
         None = 0,
-        Jump = 1 << 0,
-        Boost = 1 << 1,
-        PrimaryFire = 1 << 2,
-        SecondaryFire = 1 << 3,
-        Reload = 1 << 4,
-        Melee = 1 << 5,
-        Use = 1 << 6,
-        Ability1 = 1 << 7,
-        Ability2 = 1 << 8,
-        Ability3 = 1 << 9,
+        Forward = 1 << 0,
+        Backward = 1 << 1,
+        Left = 1 << 2,
+        Right = 1 << 3,
+        Jump = 1 << 4,
+        PrimaryFire = 1 << 5,
+        SecondaryFire = 1 << 6,
+        Reload = 1 << 7,
+        Use = 1 << 8,
     }
 
     [Serializable]
@@ -50,12 +49,11 @@ namespace QuarksWorld
 
         public int tick;
         public int renderTick;
-        public float moveYaw;
-        public float movePitch;
-        public float moveMagnitude;
         public float lookYaw;
         public float lookPitch;
-        
+
+        public float moveYaw => (buttons.IsSet(Button.Right) ? 1 : 0) + (buttons.IsSet(Button.Left) ? 1 : 0);
+        public float movePitch => (buttons.IsSet(Button.Forward) ? 1 : 0) + (buttons.IsSet(Button.Backward) ? 1 : 0);
         public Vector3 lookDir => Quaternion.Euler(new Vector3(-lookPitch, lookYaw, 0)) * Vector3.down;
         public Quaternion lookRotation => Quaternion.Euler(new Vector3(90 - lookPitch, lookYaw, 0));
         public ButtonBitField buttons;
@@ -66,9 +64,6 @@ namespace QuarksWorld
         {
             tick = 0;
             renderTick = 0;
-            moveYaw = 0;
-            movePitch = 0;
-            moveMagnitude = 0;
             lookYaw = 0;
             lookPitch = 90;
             buttons.flags = 0;
@@ -81,35 +76,9 @@ namespace QuarksWorld
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-        static float maxMoveYaw;
-        static float maxMoveMagnitude;
-
         public static void AccumulateInput(ref UserCommand command, float deltaTime)
         {
-            // To accumulate move we store the input with max magnitude and uses that
-            Vector2 moveInput = new Vector2(Game.Input.GetAxisRaw("Horizontal"), Game.Input.GetAxisRaw("Vertical"));
-
-            // float angle = Vector2.Angle(Vector2.up, moveInput);
-
-            // if (moveInput.x < 0)
-            //     angle = 360 - angle;
-
-            // float magnitude = Mathf.Clamp(moveInput.magnitude, 0, 1);
-            // if (magnitude > maxMoveMagnitude)
-            // {
-            //     maxMoveYaw = angle;
-            //     maxMoveMagnitude = magnitude;
-            // }
-
-            // command.moveYaw = maxMoveYaw;
-            // command.moveMagnitude = maxMoveMagnitude;
-
-            command.moveYaw = moveInput.x;
-            command.movePitch = moveInput.y;
-            command.moveMagnitude = maxMoveMagnitude;
-
-            Vector2 deltaMousePos = new Vector2(0, 0);
+            Vector2 deltaMousePos = Vector2.zero;
 
             if (deltaTime > 0.0f)
                 deltaMousePos += new Vector2(Game.Input.GetAxisRaw("Mouse X"), Game.Input.GetAxisRaw("Mouse Y"));
@@ -121,21 +90,19 @@ namespace QuarksWorld
             command.lookPitch += deltaMousePos.y * Game.configMouseSensitivity.FloatValue;
             command.lookPitch = Mathf.Clamp(command.lookPitch, 0, 180);
 
-            command.buttons.Or(Button.Jump,          Game.Input.GetKeyDown(KeyCode.Space));
-            command.buttons.Or(Button.Boost,         Game.Input.GetKey(KeyCode.LeftControl));
-            command.buttons.Or(Button.PrimaryFire,   Game.Input.GetMouseButton(0) && Game.GetMousePointerLock());
+            command.buttons.Or(Button.Forward, Game.Input.GetKeyDown(KeyCode.Z));
+            command.buttons.Or(Button.Backward, Game.Input.GetKeyDown(KeyCode.S));
+            command.buttons.Or(Button.Left, Game.Input.GetKeyDown(KeyCode.Q));
+            command.buttons.Or(Button.Right, Game.Input.GetKeyDown(KeyCode.D));
+            command.buttons.Or(Button.Jump, Game.Input.GetKeyDown(KeyCode.Space));
+            command.buttons.Or(Button.PrimaryFire, Game.Input.GetMouseButton(0) && Game.GetMousePointerLock());
             command.buttons.Or(Button.SecondaryFire, Game.Input.GetMouseButton(1));
-            command.buttons.Or(Button.Ability1,      Game.Input.GetKey(KeyCode.LeftShift));
-            command.buttons.Or(Button.Ability2,      Game.Input.GetKey(KeyCode.E));
-            command.buttons.Or(Button.Ability3,      Game.Input.GetKey(KeyCode.Q));
-            command.buttons.Or(Button.Reload,        Game.Input.GetKey(KeyCode.R));
-            command.buttons.Or(Button.Melee,         Game.Input.GetKey(KeyCode.V));
-            command.buttons.Or(Button.Use,           Game.Input.GetKey(KeyCode.E));
+            command.buttons.Or(Button.Reload, Game.Input.GetKey(KeyCode.R));
+            command.buttons.Or(Button.Use, Game.Input.GetKey(KeyCode.E));
         }
 
         public static void ClearInput(ref UserCommand command)
         {
-            maxMoveMagnitude = 0;
             command.ClearCommand();
         }
     }
