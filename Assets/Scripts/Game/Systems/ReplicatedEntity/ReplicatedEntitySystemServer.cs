@@ -10,14 +10,22 @@ namespace QuarksWorld
         [ConfigVar(Name = "sv.replicatedsysteminfo", DefaultValue = "0", Description = "Show replicated system info")]
         public static ConfigVar showInfo;
 
-        public ReplicatedEntityModuleServer()
+        public ReplicatedEntityModuleServer(GameWorld gameWorld)
         {
+            world = gameWorld;
+            world.OnSpawn += HandleSpawning;
+            world.OnDespawn += HandleDespawning;
+            
             entityCollection = new ReplicatedEntityCollection();
         }
 
-        public void Shutdown() { }
+        public void Shutdown()
+        {
+            world.OnSpawn -= HandleSpawning;
+            world.OnDespawn -= HandleDespawning;
+        }
 
-        public void GenerateEntitySnapshot(int entityId, ref NetworkWriter writer) => entityCollection.GenerateEntitySnapshot(entityId, ref writer);
+        public void GenerateEntitySnapshot(int entityId, NetworkWriter writer) => entityCollection.GenerateEntitySnapshot(entityId, writer);
 
         public string GenerateName(int entityId) => entityCollection.GenerateName(entityId);
 
@@ -55,6 +63,10 @@ namespace QuarksWorld
                 GameDebug.Log("HandleReplicatedEntityDataDespawn.Deinitialize entity:" + gameObject + " id:" + identity.netId);
         }
 
-        readonly ReplicatedEntityCollection entityCollection;
+        
+
+        public ReplicatedEntityCollection entityCollection;
+
+        private GameWorld world;
     }
 }

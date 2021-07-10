@@ -24,12 +24,12 @@ namespace QuarksWorld
             entityCollection.Register(id, NetworkIdentity.spawned[(uint)id].gameObject);
         }
 
-        public void ProcessEntityUpdate(int serverTick, int id, ref NetworkReader reader)
+        public void ProcessEntityUpdate(int serverTick, int id, NetworkReader reader)
         {
             if (showInfo.IntValue > 1)
                 GameDebug.Log("ApplyEntitySnapshot. ServerTick:" + serverTick + " entityId:" + id);
 
-            entityCollection.ProcessEntityUpdate(serverTick, id, ref reader);
+            entityCollection.ProcessEntityUpdate(serverTick, id, reader);
         }
 
         public void ProcessEntityDespawns(int serverTime, List<int> despawns)

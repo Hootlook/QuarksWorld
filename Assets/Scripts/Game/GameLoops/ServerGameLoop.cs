@@ -8,7 +8,7 @@ using UnityEngine.Profiling;
 
 namespace QuarksWorld
 {
-    internal class ServerGameWorld
+    public class ServerGameWorld
     {
         public int TickRate
         {
@@ -30,14 +30,18 @@ namespace QuarksWorld
 
             cameraSystem = new CameraSystem(gameWorld);
             levelCameraSystem = new LevelCameraSystem();
+            replicatedSystem = new ReplicatedEntityModuleServer(gameWorld);
+            mirrorHandlingSystem = new MirrorHandlingSystemServer(gameWorld);
             playerModule = new PlayerModuleServer(gameWorld, resourceSystem);
             gameModeSystem = new GameModeSystemServer(gameWorld, resourceSystem);
-            movableSystem = new MovableSystemServer();
+            movableSystem = new MovableSystemServer(gameWorld);
         }
 
         internal void Shutdown()
         {
             levelCameraSystem.Shutdown();
+            replicatedSystem.Shutdown();
+            mirrorHandlingSystem.ShutDown();
             movableSystem.Shutdown();
             playerModule.Shutdown();
             gameModeSystem.Shutdown();
@@ -75,13 +79,29 @@ namespace QuarksWorld
             }
         }
 
-        internal void GenerateSnapshot(float deltaTime)
+        internal EntitySnapshot[] GenerateSnapshot(float deltaTime)
         {
+            List<EntitySnapshot> entities = new List<EntitySnapshot>();
 
+            foreach (var entity in replicatedSystem.entityCollection.replicatedData)
+            {
+                using (PooledNetworkWriter writer = NetworkWriterPool.GetWriter())
+                {
+                    if (entity.gameObject.TryGetComponent(out NetworkIdentity indentity))
+                    {
+                        replicatedSystem.GenerateEntitySnapshot((int)indentity.netId, writer);
+                        entities.Add(new EntitySnapshot { id = (int)indentity.netId, data = writer.ToArray() });
+                    }
+                }
+            }
+
+            return entities.ToArray();
         }
 
         GameWorld gameWorld;
 
+        readonly ReplicatedEntityModuleServer replicatedSystem;
+        readonly MirrorHandlingSystemServer mirrorHandlingSystem;
         readonly PlayerModuleServer playerModule;
         readonly GameModeSystemServer gameModeSystem;
         readonly MovableSystemServer movableSystem;
@@ -151,6 +171,9 @@ namespace QuarksWorld
         float timer;
         public void Update()
         {
+            if (serverWorld != null && serverWorld.TickRate != Game.serverTickRate.IntValue)
+                serverWorld.TickRate = Game.serverTickRate.IntValue;
+
             stateMachine.Update();
 
             timer += Time.deltaTime;
@@ -260,21 +283,25 @@ namespace QuarksWorld
 
             serverWorld = new ServerGameWorld(gameWorld, resources);
         }
-
+        
         float nextTickTime;
         void UpdateActiveState()
         {
             GameDebug.Assert(serverWorld != null);
 
-            int tickCount = 0;
             while (Game.frameTime > nextTickTime)
             {
-                tickCount++;
                 serverWorld.TickUpdate();
 
-                Profiler.BeginSample("GenerateSnapshots");
-                serverWorld.GenerateSnapshot(Time.fixedDeltaTime);
-                Profiler.EndSample();
+                // Profiler.BeginSample("GenerateSnapshots");
+
+                // SnapshotMessage snapshot;
+                // snapshot.tick = serverWorld.WorldTick;
+                // snapshot.entities = serverWorld.GenerateSnapshot(Time.fixedDeltaTime);
+
+                // Profiler.EndSample();
+                
+                // NetworkServer.SendToAll(snapshot, Channels.Unreliable);
 
                 nextTickTime += serverWorld.TickInterval;
             }

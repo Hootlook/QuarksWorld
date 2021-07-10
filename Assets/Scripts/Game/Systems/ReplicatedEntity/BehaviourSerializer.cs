@@ -18,24 +18,24 @@ namespace QuarksWorld
     {
         // Interface for components that are replicated to all clients
 
-        void Serialize(ref SerializeContext context, ref NetworkWriter writer);
-        void Deserialize(ref SerializeContext context, ref NetworkReader reader);
+        void Serialize(ref SerializeContext context, NetworkWriter writer);
+        void Deserialize(ref SerializeContext context, NetworkReader reader);
     }
 
     public interface IPredictedComponent<T> : IPredictedBase
     {
         // Interface for components that are replicated only to predicting clients
 
-        void Serialize(ref SerializeContext context, ref NetworkWriter writer);
-        void Deserialize(ref SerializeContext context, ref NetworkReader reader);
+        void Serialize(ref SerializeContext context, NetworkWriter writer);
+        void Deserialize(ref SerializeContext context, NetworkReader reader);
     }
 
     public interface IInterpolatedComponent<T> : IInterpolatedBase
     {
         // Interface for components that are replicated to all non-predicting clients
 
-        void Serialize(ref SerializeContext context, ref NetworkWriter writer);
-        void Deserialize(ref SerializeContext context, ref NetworkReader reader);
+        void Serialize(ref SerializeContext context, NetworkWriter writer);
+        void Deserialize(ref SerializeContext context, NetworkReader reader);
         void Interpolate(ref SerializeContext context, ref T first, ref T last, float t);
     }
 
@@ -64,21 +64,21 @@ namespace QuarksWorld
 
     public interface IReplicatedSerializer
     {
-        void Serialize(ref NetworkWriter writer);
-        void Deserialize(ref NetworkReader reader, int tick);
+        void Serialize(NetworkWriter writer);
+        void Deserialize(NetworkReader reader, int tick);
     }
 
     public interface IPredictedSerializer
     {
-        void Serialize(ref NetworkWriter writer);
-        void Deserialize(ref NetworkReader reader, int tick);
+        void Serialize(NetworkWriter writer);
+        void Deserialize(NetworkReader reader, int tick);
         void Rollback();
     }
 
     public interface IInterpolatedSerializer
     {
-        void Serialize(ref NetworkWriter writer);
-        void Deserialize(ref NetworkReader reader, int tick);
+        void Serialize(NetworkWriter writer);
+        void Deserialize(NetworkReader reader, int tick);
         void Interpolate(GameTime time);
     }
 
@@ -129,15 +129,15 @@ namespace QuarksWorld
             context.refSerializer = refSerializer;
         }
 
-        public void Serialize(ref NetworkWriter writer)
+        public void Serialize(NetworkWriter writer)
         {
-            state.Serialize(ref context, ref writer);
+            state.Serialize(ref context, writer);
         }
 
-        public void Deserialize(ref NetworkReader reader, int tick)
+        public void Deserialize(NetworkReader reader, int tick)
         {
             context.tick = tick;
-            state.Deserialize(ref context, ref reader);
+            state.Deserialize(ref context, reader);
         }
     }
 
@@ -154,15 +154,15 @@ namespace QuarksWorld
             context.refSerializer = refSerializer;
         }
 
-        public void Serialize(ref NetworkWriter writer)
+        public void Serialize(NetworkWriter writer)
         {
-            state.Serialize(ref context, ref writer);
+            state.Serialize(ref context, writer);
         }
 
-        public void Deserialize(ref NetworkReader reader, int tick)
+        public void Deserialize(NetworkReader reader, int tick)
         {
             context.tick = tick;
-            lastServerState.Deserialize(ref context, ref reader);
+            lastServerState.Deserialize(ref context, reader);
         }
 
         public void Rollback()
@@ -185,16 +185,16 @@ namespace QuarksWorld
             context.refSerializer = refSerializer;
         }
 
-        public void Serialize(ref NetworkWriter writer)
+        public void Serialize(NetworkWriter writer)
         {
-            state.Serialize(ref context, ref writer);
+            state.Serialize(ref context, writer);
         }
 
-        public void Deserialize(ref NetworkReader reader, int tick)
+        public void Deserialize(NetworkReader reader, int tick)
         {
             context.tick = tick;
             var state = new TData();
-            state.Deserialize(ref context, ref reader);
+            state.Deserialize(ref context, reader);
             stateHistory.Add(tick, state);
         }
 

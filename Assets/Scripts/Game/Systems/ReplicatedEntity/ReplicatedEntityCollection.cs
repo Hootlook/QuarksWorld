@@ -1,3 +1,4 @@
+using System.Linq;
 using Mirror;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,7 +23,7 @@ namespace QuarksWorld
         List<IPredictedSerializer> netPredicted = new List<IPredictedSerializer>(32);
         List<IInterpolatedSerializer> netInterpolated = new List<IInterpolatedSerializer>(32);
 
-        void FindSerializers(GameObject gameObject)
+        bool FindSerializers(GameObject gameObject)
         {
             var typeArray = gameObject.GetComponents<MonoBehaviour>();
 
@@ -30,18 +31,23 @@ namespace QuarksWorld
             var predictedComponentType = typeof(IPredictedBase);
             var interpolatedComponentType = typeof(IInterpolatedBase);
 
+            var hasSerializer = false;
+
             foreach (var componentType in typeArray)
             {
-                var managedType = componentType.GetType().BaseType.GenericTypeArguments[0];
+                var managedType = componentType.GetType().BaseType.GenericTypeArguments.FirstOrDefault(t => typeof(IComponentBase).IsAssignableFrom(t));
 
-                if (!typeof(IComponentBase).IsAssignableFrom(managedType))
+                if (managedType == null)
                     continue;
 
                 if (serializedComponentType.IsAssignableFrom(managedType))
                 {
                     var serializer = serializers.CreateNetSerializer(managedType, gameObject, this);
                     if (serializer != null)
+                    {
                         netSerializables.Add(serializer);
+                        hasSerializer = true;
+                    }
                 }
                 else if (predictedComponentType.IsAssignableFrom(managedType))
                 {
@@ -51,8 +57,11 @@ namespace QuarksWorld
                         if (it.IsGenericType)
                         {
                             var serializer = serializers.CreatePredictedSerializer(managedType, gameObject, this);
-                            if (serializer != null)
+                            if (serializer != null) 
+                            {
                                 netPredicted.Add(serializer);
+                                hasSerializer = true;
+                            }
 
                             break;
                         }
@@ -66,36 +75,31 @@ namespace QuarksWorld
                         if (it.IsGenericType)
                         {
                             var serializer = serializers.CreateInterpolatedSerializer(managedType, gameObject, this);
-                            if (serializer != null)
+                            if (serializer != null) 
+                            {
                                 netInterpolated.Add(serializer);
+                                hasSerializer = true;
+                            }
 
                             break;
                         }
                     }
                 }
             }
+
+            return hasSerializer;
         }
 
         public void Register(int netId, GameObject gameObject)
         {
-            // Grow to make sure there is room for entity            
-            if (netId >= replicatedData.Count)
-            {
-                var count = netId - replicatedData.Count + 1;
-                var emptyData = new ReplicatedData();
-                for (var i = 0; i < count; i++)
-                {
-                    replicatedData.Add(emptyData);
-                }
-            }
-
-            GameDebug.Assert(replicatedData[netId].gameObject == null, "ReplicatedData has entity set:{0}", replicatedData[netId].gameObject);
+            // GameDebug.Assert(replicatedData[netId].gameObject == null, "ReplicatedData has entity set:{0}", replicatedData[netId].gameObject);
 
             netSerializables.Clear();
             netPredicted.Clear();
             netInterpolated.Clear();
 
-            FindSerializers(gameObject);
+            if (!FindSerializers(gameObject))
+                return;
 
             var data = new ReplicatedData
             {
@@ -105,7 +109,7 @@ namespace QuarksWorld
                 interpolatedArray = netInterpolated.ToArray(),
             };
 
-            replicatedData[netId] = data;
+            replicatedData.Add(data);
         }
 
         public GameObject Unregister(int netId)
@@ -118,38 +122,38 @@ namespace QuarksWorld
             return gameObject;
         }
 
-        public void ProcessEntityUpdate(int serverTick, int id, ref NetworkReader reader)
+        public void ProcessEntityUpdate(int serverTick, int id, NetworkReader reader)
         {
             var data = replicatedData[id];
 
             GameDebug.Assert(data.serializableArray != null, "Failed to apply snapshot. Serializablearray is null");
 
             foreach (var entry in data.serializableArray)
-                entry.Deserialize(ref reader, serverTick);
+                entry.Deserialize(reader, serverTick);
 
             foreach (var entry in data.predictedArray)
-                entry.Deserialize(ref reader, serverTick);
+                entry.Deserialize(reader, serverTick);
 
             foreach (var entry in data.interpolatedArray)
-                entry.Deserialize(ref reader, serverTick);
+                entry.Deserialize(reader, serverTick);
 
             replicatedData[id] = data;
         }
 
-        public void GenerateEntitySnapshot(int id, ref NetworkWriter writer)
+        public void GenerateEntitySnapshot(int id, NetworkWriter writer)
         {
-            var data = replicatedData[id];
+            var data = replicatedData.Find(g => g.gameObject.GetComponent<NetworkIdentity>().netId == id);
 
             GameDebug.Assert(data.serializableArray != null, "Failed to generate snapshot. Serializablearray is null");
 
             foreach (var entry in data.serializableArray)
-                entry.Serialize(ref writer);
+                entry.Serialize(writer);
 
             foreach (var entry in data.predictedArray)
-                entry.Serialize(ref writer);
+                entry.Serialize(writer);
 
             foreach (var entry in data.interpolatedArray)
-                entry.Serialize(ref writer);
+                entry.Serialize(writer);
         }
 
         public void Rollback()
@@ -205,6 +209,6 @@ namespace QuarksWorld
             return name;
         }
 
-        List<ReplicatedData> replicatedData = new List<ReplicatedData>(512);
+        public List<ReplicatedData> replicatedData = new List<ReplicatedData>();
     }
 }

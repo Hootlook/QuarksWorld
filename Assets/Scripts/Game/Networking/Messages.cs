@@ -7,4 +7,10 @@ namespace QuarksWorld
         public string text;
     }
 
+    public struct SnapshotMessage : NetworkMessage
+    {
+        public int tick;
+        public EntitySnapshot[] entities;
+    }
+
 }

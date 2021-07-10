@@ -9,10 +9,12 @@ namespace QuarksWorld.Systems
     {
         int spawnNum;
 
-        public MovableSystemServer()
+        public MovableSystemServer(GameWorld gameWorld)
         {
             Console.AddCommand("spawnbox", CmdSpawnBox, "Spawn <n> boxes", GetHashCode());
             Console.AddCommand("despawnboxes", CmdDespawnBoxes, "Despawn all boxes", GetHashCode());
+
+            world = gameWorld;
         }
 
         private void CmdDespawnBoxes(string[] args)
@@ -47,12 +49,12 @@ namespace QuarksWorld.Systems
             int x = spawnNum % 10 - 5;
             int z = spawnNum / 10 - 5;
 
-            GameObject obj = Object.Instantiate((GameObject)Resources.Load("Prefabs/MovableBox"), Vector3.up * 5, Quaternion.identity);
-            
-            NetworkServer.Spawn(obj);
+            GameObject obj = world.Spawn((GameObject)Resources.Load("Prefabs/MovableBox"), Vector3.up * 5, Quaternion.identity);
+
             movables.Add(obj);
         }
 
         private List<GameObject> movables = new List<GameObject>();
+        private GameWorld world;
     }
 }

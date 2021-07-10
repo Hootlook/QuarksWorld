@@ -112,12 +112,12 @@ namespace QuarksWorld
             return new ReplicatedSerializerFactory<ReplicatedEntityData>();
         }
 
-        public void Serialize(ref SerializeContext context, ref NetworkWriter writer)
+        public void Serialize(ref SerializeContext context, NetworkWriter writer)
         {
             writer.WriteInt32(predictingPlayerId);
         }
 
-        public void Deserialize(ref SerializeContext context, ref NetworkReader reader)
+        public void Deserialize(ref SerializeContext context, NetworkReader reader)
         {
             predictingPlayerId = reader.ReadInt32();
         }

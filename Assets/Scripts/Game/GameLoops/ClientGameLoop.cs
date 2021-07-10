@@ -16,6 +16,7 @@ namespace QuarksWorld
 
             cameraSystem = new CameraSystem(gameWorld);
             playerModule = new PlayerModuleClient(gameWorld);
+            replicatedSystem = new ReplicatedEntityModuleClient();
             spectatorSystem = new SpectatorSystem(gameWorld);
             levelCameraSystem = new LevelCameraSystem();
         }
@@ -24,6 +25,7 @@ namespace QuarksWorld
         {
             playerModule.Shutdown();
             levelCameraSystem.Shutdown();
+            replicatedSystem.Shutdown();
         }
 
         public void Update()
@@ -37,6 +39,8 @@ namespace QuarksWorld
             // spectatorSystem.Update();
             playerModule.Update();
             levelCameraSystem.Update();
+
+            replicatedSystem.Interpolate(renderTime);
 
             gameWorld.ProcessDespawns();
         }
@@ -145,6 +149,11 @@ namespace QuarksWorld
         //     playerModule.StoreCommand(predictedTime.tick);
         // }
 
+        public void ProcessEntityUpdate(int serverTick, int id, NetworkReader reader)
+        {
+            replicatedSystem.ProcessEntityUpdate(serverTick, id, reader);
+        }
+
         GameTime renderTime = new GameTime(60);
         GameTime predictedTime = new GameTime(60);
         GameWorld gameWorld;
@@ -153,6 +162,7 @@ namespace QuarksWorld
         readonly PlayerModuleClient playerModule;
         readonly SpectatorSystem spectatorSystem;
         readonly LevelCameraSystem levelCameraSystem;
+        readonly ReplicatedEntityModuleClient replicatedSystem;
     }
 
     public class ClientGameLoop : Game.IGameLoop
@@ -222,6 +232,7 @@ namespace QuarksWorld
             NetworkClient.RegisterHandler<NotReadyMessage>(OnNotReady);
             NetworkClient.RegisterHandler<SceneMessage>(OnMapUpate, false);
             NetworkClient.RegisterHandler<ConsoleMessage>(OnServerOutput, false);
+            NetworkClient.RegisterHandler<SnapshotMessage>(OnSnapshotReceived, false);
         }
 
         void OnConnect()
@@ -254,6 +265,23 @@ namespace QuarksWorld
         void OnServerOutput(ConsoleMessage msg)   
         {
             Console.Write("$: " + msg.text);
+        }
+
+        void OnSnapshotReceived(SnapshotMessage msg)
+        {
+            foreach (var entity in msg.entities)
+            {
+                using (PooledNetworkReader reader = NetworkReaderPool.GetReader(entity.data))
+                {
+                    if (!NetworkIdentity.spawned.TryGetValue((uint)entity.id, out NetworkIdentity identity))
+                    {
+                        GameDebug.LogWarning("ClientGameLoop.OnSnapshotReceived: entity not found for snapshot");
+                        continue;
+                    }
+
+                    clientWorld.ProcessEntityUpdate(msg.tick, entity.id, reader);
+                }
+            }
         }
 
         public void Rpc(string command)
