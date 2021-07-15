@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1595665478062909268}
-  - component: {fileID: 4789282768845039615}
-  - component: {fileID: 3625048114371263394}
-  - component: {fileID: 9097917589014961310}
+  - component: {fileID: -480208318939063391}
+  - component: {fileID: -8259408625213046235}
+  - component: {fileID: 3596971646968999463}
   - component: {fileID: 8115121879253404826}
   - component: {fileID: 2662769016059542861}
   - component: {fileID: 7826262568180476866}
@@ -37,7 +37,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4789282768845039615
+--- !u!114 &-480208318939063391
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -54,7 +54,7 @@ MonoBehaviour:
   visible: 0
   m_AssetId: 
   hasSpawned: 0
---- !u!114 &3625048114371263394
+--- !u!114 &-8259408625213046235
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -75,7 +75,7 @@ MonoBehaviour:
   compressRotation: 0
   interpolateScale: 1
   syncScale: 1
---- !u!114 &9097917589014961310
+--- !u!114 &3596971646968999463
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -87,8 +87,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5940bffe18c7a9647b49fa7979436fcd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncMode: 0
-  syncInterval: 0.1
 --- !u!33 &8115121879253404826
 MeshFilter:
   m_ObjectHideFlags: 0

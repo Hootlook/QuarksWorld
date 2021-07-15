@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
 
-namespace QuarksWorld
+namespace QuarksWorld.Old
 {
     #region ComponentInterfaces
 

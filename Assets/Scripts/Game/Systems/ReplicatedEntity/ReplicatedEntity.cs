@@ -8,7 +8,7 @@ using UnityEditor.Experimental.SceneManagement;
 #endif
 using Mirror;
 
-namespace QuarksWorld
+namespace QuarksWorld.Old
 {
     [ExecuteAlways, DisallowMultipleComponent]
     public class ReplicatedEntity : ReplicatedBehavior<ReplicatedEntityData>
