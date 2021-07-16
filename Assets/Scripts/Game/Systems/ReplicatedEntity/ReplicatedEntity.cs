@@ -8,7 +8,7 @@ using UnityEditor.Experimental.SceneManagement;
 #endif
 using Mirror;
 
-namespace QuarksWorld.Old
+namespace QuarksWorld
 {
     [ExecuteAlways, DisallowMultipleComponent]
     public class ReplicatedEntity : ReplicatedBehavior<ReplicatedEntityData>
@@ -114,12 +114,12 @@ namespace QuarksWorld.Old
 
         public void Serialize(ref SerializeContext context, NetworkWriter writer)
         {
-            writer.WriteInt32(predictingPlayerId);
+            writer.WriteInt(predictingPlayerId);
         }
 
         public void Deserialize(ref SerializeContext context, NetworkReader reader)
         {
-            predictingPlayerId = reader.ReadInt32();
+            predictingPlayerId = reader.ReadInt();
         }
     }
 }

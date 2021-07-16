@@ -8,7 +8,7 @@ using UnityEditor.Experimental.SceneManagement;
 #endif
 #endif
 
-namespace QuarksWorld
+namespace QuarksWorld.Experimental
 {
     [DisallowMultipleComponent]
     public class ReplicatedEntity : MonoBehaviour
@@ -148,8 +148,8 @@ namespace QuarksWorld
 
         public void Deserialize(ref SerializeContext context, NetworkReader reader)
         {
-            id = reader.ReadInt32();
-            predictingPlayerId = reader.ReadInt32();
+            id = reader.ReadInt();
+            predictingPlayerId = reader.ReadInt();
         }
     }
 }

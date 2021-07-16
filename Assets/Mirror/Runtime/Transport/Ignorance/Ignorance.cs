@@ -72,6 +72,12 @@ namespace IgnoranceTransport
 #endif
         }
 
+        public void Awake()
+        {
+            if (LogType != IgnoranceLogType.Nothing)
+                Debug.Log($"Thanks for using Ignorance {IgnoranceInternals.Version}. Keep up to date, report bugs and support the developer at https://github.com/SoftwareGuy/Ignorance!");
+        }
+
         public override string ToString()
         {
             return $"Ignorance v{IgnoranceInternals.Version}";
@@ -122,7 +128,14 @@ namespace IgnoranceTransport
             ClientState = ConnectionState.Disconnected;
         }
 
+#if !MIRROR_37_0_OR_NEWER
         public override void ClientSend(int channelId, ArraySegment<byte> segment)
+#else
+        // v1.4.0b6: Mirror rearranged the ClientSend params, so we need to apply a fix for that or
+        // we end up using the obsoleted version. The obsolete version isn't a fatal error, but
+        // it's best to stick with the new structures.
+        public override void ClientSend(ArraySegment<byte> segment, int channelId)
+#endif
         {
             if (Client == null)
             {
@@ -147,7 +160,7 @@ namespace IgnoranceTransport
             bool flagsSet = (desiredFlags & ReliableOrUnreliableFragmented) > 0;
 
             if (LogType != IgnoranceLogType.Nothing && byteCount > 1200 && !flagsSet)
-                Debug.LogWarning($"Warning: Server trying to send a Unreliable packet bigger than the recommended ENet 1200 byte MTU ({byteCount} > 1200). ENet will force Reliable Fragmented delivery.");
+                Debug.LogWarning($"Warning: Client trying to send a Unreliable packet bigger than the recommended ENet 1200 byte MTU ({byteCount} > 1200). ENet will force Reliable Fragmented delivery.");
 
             // Create the packet.
             clientOutgoingPacket.Create(segment.Array, byteOffset, byteCount + byteOffset, desiredFlags);
@@ -170,12 +183,17 @@ namespace IgnoranceTransport
             return Server != null && Server.IsAlive;
         }
 
-        public override bool ServerDisconnect(int connectionId)
+#if !MIRROR_37_0_OR_NEWER
+        // Workaround for legacy Mirror versions.
+        public override bool ServerDisconnect(int connectionId) => ServerDisconnectLegacy(connectionId);
+#else
+        public override void ServerDisconnect(int connectionId)
         {
             if (Server == null)
             {
-                Debug.LogError("Server object is null, this shouldn't really happen but it did...");
-                return false;
+                Debug.LogError("Cannot enqueue kick packet; our Server object is null. Something has gone wrong.");
+                // Return here because otherwise we will get a NRE when trying to enqueue the kick packet.
+                return;
             }
 
             IgnoranceCommandPacket kickPacket = new IgnoranceCommandPacket
@@ -186,9 +204,8 @@ namespace IgnoranceTransport
 
             // Pass the packet onto the thread for dispatch.
             Server.Commands.Enqueue(kickPacket);
-
-            return true;
         }
+#endif
 
         public override string ServerGetClientAddress(int connectionId)
         {
@@ -198,13 +215,20 @@ namespace IgnoranceTransport
             return "(unavailable)";
         }
 
+#if !MIRROR_37_0_OR_NEWER
         public override void ServerSend(int connectionId, int channelId, ArraySegment<byte> segment)
+#else
+        // v1.4.0b6: Mirror rearranged the ServerSend params, so we need to apply a fix for that or
+        // we end up using the obsoleted version. The obsolete version isn't a fatal error, but
+        // it's best to stick with the new structures.
+        public override void ServerSend(int connectionId, ArraySegment<byte> segment, int channelId)
+#endif
         {
             // Debug.Log($"ServerSend({connectionId}, {channelId}, <{segment.Count} byte segment>)");
 
             if (Server == null)
             {
-                Debug.LogError("Server object is null, this shouldn't really happen but it did...");
+                Debug.LogError("Cannot enqueue data packet; our Server object is null. Something has gone wrong.");
                 return;
             }
 
@@ -310,7 +334,8 @@ namespace IgnoranceTransport
             }
 
             // ENet only supports a maximum of 32MB packet size.
-            if (MaxAllowedPacketSize > 33554432) MaxAllowedPacketSize = 33554432;
+            if (MaxAllowedPacketSize > 33554432)
+                MaxAllowedPacketSize = 33554432;
         }
 
         private void InitializeServerBackend()
@@ -617,7 +642,21 @@ namespace IgnoranceTransport
             if(!enabled) return;
 
             if(Client.IsAlive)
+            {
                 ProcessClientPackets();
+
+                if (ClientState == ConnectionState.Connected && clientStatusUpdateInterval > -1)
+                {
+                    statusUpdateTimer += Time.deltaTime;
+
+                    if (statusUpdateTimer >= clientStatusUpdateInterval)
+                    {
+                        Client.Commands.Enqueue(new IgnoranceCommandPacket { Type = IgnoranceCommandType.ClientRequestsStatusUpdate });
+                        statusUpdateTimer = 0f;
+                    }
+                }
+            }
+                
         }
 
         /*
@@ -633,6 +672,7 @@ namespace IgnoranceTransport
         */
 #endif
         #endregion
+
         #region Debug
         private void OnGUI()
         {
@@ -656,7 +696,7 @@ namespace IgnoranceTransport
         public override int GetMaxPacketSize(int channelId = 0) => MaxAllowedPacketSize;
 
         // UDP Recommended Max MTU = 1200.
-        public override int GetMaxBatchSize(int channelId) {
+        public override int GetBatchThreshold(int channelId) {
             bool isFragmentedAlready = ((PacketFlags)Channels[channelId] & ReliableOrUnreliableFragmented) > 0;
             return isFragmentedAlready ? MaxAllowedPacketSize : 1200;
         }
@@ -675,6 +715,30 @@ namespace IgnoranceTransport
         private const PacketFlags ReliableOrUnreliableFragmented = PacketFlags.Reliable | PacketFlags.UnreliableFragmented;
 
         private float statusUpdateTimer = 0f;
+        #endregion
+
+        #region Legacy Overrides
+#if !MIRROR_37_0_OR_NEWER
+        public bool ServerDisconnectLegacy(int connectionId)
+        {
+            if (Server == null)
+            {
+                Debug.LogError("Cannot enqueue kick packet; our Server object is null. Something has gone wrong.");
+                // Return here because otherwise we will get a NRE when trying to enqueue the kick packet.
+                return false;
+            }
+
+            IgnoranceCommandPacket kickPacket = new IgnoranceCommandPacket
+            {
+                Type = IgnoranceCommandType.ServerKickPeer,
+                PeerId = (uint)connectionId - 1 // ENet's native peer ID will be ConnID - 1
+            };
+
+            // Pass the packet onto the thread for dispatch.
+            Server.Commands.Enqueue(kickPacket);
+            return true;
+        }
+#endif
         #endregion
 #endif
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
 
-namespace QuarksWorld.Old
+namespace QuarksWorld
 {
     public class ReplicatedEntityModuleServer
     {

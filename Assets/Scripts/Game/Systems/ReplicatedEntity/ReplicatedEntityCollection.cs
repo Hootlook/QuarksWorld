@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-namespace QuarksWorld.Old
+namespace QuarksWorld
 {
     public class ReplicatedEntityCollection : IEntityReferenceSerializer
     {
