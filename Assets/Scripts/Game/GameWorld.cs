@@ -1,9 +1,7 @@
-using UnityEngine;
-using System.Collections.Generic;
-using UnityEngine.Profiling;
 using Object = UnityEngine.Object;
+using System.Collections.Generic;
+using UnityEngine;
 using System;
-using Entitas;
 
 namespace QuarksWorld
 {

@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Mirror;
 
 namespace QuarksWorld.Systems
 {
@@ -45,9 +44,6 @@ namespace QuarksWorld.Systems
 
         public readonly GameModeState gameModeState;
 
-        private readonly GameObject spectatorPrefab;
-        private readonly GameObject characterPrefab;
-
         public List<Team> teams = new List<Team>();
         public List<TeamBase> teamBases = new List<TeamBase>();
 
@@ -57,14 +53,15 @@ namespace QuarksWorld.Systems
             resources = resourcesSystem;
             currentGameModeName = "";
 
-            gameModePrefab = (GameObject)Resources.Load("Prefabs/GameModeState");
+            var gameModeStateAssetRef = resources.GetResourceRegistry<ReplicatedEntityRegistry>().entries[3].guid;
+            var spectatorAssetRef = resources.GetResourceRegistry<ReplicatedEntityRegistry>().entries[1].guid;
+            var characterAssetRef = resources.GetResourceRegistry<ReplicatedEntityRegistry>().entries[2].guid;
+
+            gameModePrefab = (GameObject)resources.GetSingleAssetResource(gameModeStateAssetRef);
             gameModeState = world.Spawn<GameModeState>(gameModePrefab);
             gameModeState.name = gameModePrefab.name;
 
             gameModeState.teams = teams;
-
-            var spectatorAssetRef = resources.GetResourceRegistry<ReplicatedEntityRegistry>().entries[1].guid;
-            var characterAssetRef = resources.GetResourceRegistry<ReplicatedEntityRegistry>().entries[2].guid;
 
             spectatorPrefab = (GameObject)resources.GetSingleAssetResource(spectatorAssetRef);
             characterPrefab = (GameObject)resources.GetSingleAssetResource(characterAssetRef);
@@ -190,7 +187,6 @@ namespace QuarksWorld.Systems
                     }
                 }
                     
-                    
                 // Has new entity been requested
                 if (player.requestedCharacterType != -1 || player.requestedTeamIndex != -1)
                 {
@@ -199,7 +195,6 @@ namespace QuarksWorld.Systems
 
                     if (player.controlledEntity != null)
                     {
-                        NetworkServer.Destroy(player.controlledEntity);
                         world.Despawn(player.controlledEntity);
 
                         player.controlledEntity = null;
@@ -240,7 +235,6 @@ namespace QuarksWorld.Systems
                                 // Despawn current controlled entity. New entity will be created later
                                 if (player.controlledEntity.GetComponent<Character>())
                                 {
-                                    NetworkServer.Destroy(player.controlledEntity);
                                     world.RequestDespawn(player.controlledEntity);
                                 }
 
@@ -250,110 +244,11 @@ namespace QuarksWorld.Systems
                     }
                 }
             }
-
-            {
-            // for (int i = 0; i < playerStates.Count; ++i)
-            // {
-            //     var player = playerStates[i];
-
-            //     // Spawn contolled entity (character)
-            //     if (player.controlledEntity == null)
-            //     {
-            //         var position = new Vector3(0.0f, 0.2f, 0.0f);
-            //         var rotation = Quaternion.identity;
-            //         GetRandomSpawnTransform(player.teamIndex, ref position, ref rotation);
-
-            //         gameMode.OnPlayerRespawn(player, ref position, ref rotation);
-
-            //         if (player.characterType == 1000)
-            //         {
-            //             SpawnSpectator(player, position, rotation);
-            //             player.teamIndex = Config.TeamSpectator;
-            //         }
-            //         else
-            //         {
-            //             SpawnCharacter(player, position, rotation);
-            //         }
-
-            //         continue;
-            //     }
-
-            //     // Has new entity been requested
-            //     if (player.requestedCharacterType != -1)
-            //     {
-            //         if (player.requestedCharacterType != player.characterType)
-            //         {
-            //             player.characterType = player.requestedCharacterType;
-            //             if (player.controlledEntity != null)
-            //             {
-            //                 // Despawn current controlled entity. New entity will be created later
-            //                 if (player.controlledEntity.GetComponent<CharacterState>())
-            //                 {
-            //                     var position = new Vector3(0.0f, 0.2f, 0.0f);
-            //                     var rotation = Quaternion.identity;
-            //                     GetRandomSpawnTransform(player.teamIndex, ref position, ref rotation);
-
-            //                     NetworkServer.Destroy(player.controlledEntity);
-            //                     world.Despawn(player.controlledEntity);
-
-            //                     SpawnCharacter(player, position, rotation);
-            //                 }
-            //                 player.controlledEntity = null;
-            //             }
-            //         }
-            //         player.requestedCharacterType = -1;
-            //         continue;
-            //     }
-
-            //     if (player.controlledEntity.TryGetComponent(out HealthState healthState))
-            //     {
-            //         // Is character dead ?
-            //         if (healthState.health == 0)
-            //         {
-            //             // Send kill msg
-            //             if (healthState.deathTick == world.worldTime.tick)
-            //             {
-            //                 var killerIndex = FindPlayerControlling(PlayerState.List, healthState.killedBy);
-            //                 PlayerState killerPlayer = null;
-            //                 if (killerIndex != -1)
-            //                 {
-            //                     killerPlayer = playerStates[killerIndex];
-            //                     var format = KillMessages[Random.Range(0, KillMessages.Length)];
-            //                     GameDebug.Log($"{killerPlayer.playerName} {format} {player.playerName}");
-            //                 }
-            //                 else
-            //                 {
-            //                     var format = SuicideMessages[Random.Range(0, SuicideMessages.Length)];
-            //                     GameDebug.Log($"{format} {player.playerName}");
-            //                 }
-            //                 gameMode.OnPlayerKilled(player, killerPlayer);
-            //             }
-
-            //             // Respawn dead players except if in ended mode
-            //             if (enableRespawning && (world.worldTime.tick - healthState.deathTick) * world.worldTime.TickInterval > respawnDelay.IntValue)
-            //             {
-            //                 // Despawn current controlled entity. New entity will be created later
-            //                 if (player.controlledEntity.GetComponent<CharacterState>())
-            //                 {
-            //                     NetworkServer.Destroy(player.controlledEntity);
-            //                     world.RequestDespawn(player.controlledEntity);
-            //                 }
-
-            //                 player.controlledEntity = null;
-            //             }
-            //         }
-            //     }
-            // }
-            }
         }
 
         void SpawnSpectator(PlayerState owner, Vector3 position, Quaternion rotation)
         {
-            var spectatorObj = world.Spawn(spectatorPrefab, position, rotation);
-
-            NetworkServer.Spawn(spectatorObj, owner.connectionToClient);
-
-            owner.controlledEntity = spectatorObj;
+            owner.controlledEntity = world.Spawn(spectatorPrefab, position, rotation);
         }
 
         void SpawnCharacter(PlayerState owner, Vector3 position, Quaternion rotation)
@@ -365,8 +260,6 @@ namespace QuarksWorld.Systems
             var heroTypeAsset = heroTypeRegistry.entries[owner.characterType];
 
             var characterObj = world.Spawn(characterPrefab, position, rotation);
-
-            NetworkServer.Spawn(characterObj, owner.connectionToClient);
 
             var character = characterObj.GetComponent<Character>();
             character.teamId = 0;
@@ -532,8 +425,12 @@ namespace QuarksWorld.Systems
         };
 
         readonly GameWorld world;
-        readonly BundledResourceManager resources;
+        
+        readonly GameObject spectatorPrefab;
+        readonly GameObject characterPrefab;
+        
         readonly GameObject gameModePrefab;
+        readonly BundledResourceManager resources;
         int[] prevTeamSpawnPointIndex = new int[2];
         bool enableRespawning = true;
         string currentGameModeName;

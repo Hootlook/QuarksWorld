@@ -16,7 +16,7 @@ namespace QuarksWorld
 
             cameraSystem = new CameraSystem(gameWorld);
             playerModule = new PlayerModuleClient(gameWorld);
-            replicatedSystem = new ReplicatedEntityModuleClient();
+            replicatedSystem = new ReplicatedEntitySystemClient();
             spectatorSystem = new SpectatorSystem(gameWorld);
             levelCameraSystem = new LevelCameraSystem();
         }
@@ -162,7 +162,7 @@ namespace QuarksWorld
         readonly PlayerModuleClient playerModule;
         readonly SpectatorSystem spectatorSystem;
         readonly LevelCameraSystem levelCameraSystem;
-        readonly ReplicatedEntityModuleClient replicatedSystem;
+        readonly ReplicatedEntitySystemClient replicatedSystem;
     }
 
     public class ClientGameLoop : Game.IGameLoop

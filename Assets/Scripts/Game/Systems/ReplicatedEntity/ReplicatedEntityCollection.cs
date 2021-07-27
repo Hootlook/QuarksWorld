@@ -1,123 +1,72 @@
-using System.Linq;
-using Mirror;
 using System.Collections;
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
-using System;
 
 namespace QuarksWorld
 {
-    public class ReplicatedEntityCollection : IEntityReferenceSerializer
+    public class ReplicatedEntityCollection
     {
+        public List<ReplicatedData> replicatedData = new List<ReplicatedData>();
+        
         public struct ReplicatedData
         {
             public GameObject gameObject;
             public IReplicatedSerializer[] serializableArray;
-            public IPredictedSerializer[] predictedArray;
-            public IInterpolatedSerializer[] interpolatedArray;
         }
 
-        BehaviorSerializers serializers = new BehaviorSerializers();
+        List<IReplicatedSerializer> cacheSerializables = new List<IReplicatedSerializer>(32);
 
-        List<IReplicatedSerializer> netSerializables = new List<IReplicatedSerializer>(32);
-        List<IPredictedSerializer> netPredicted = new List<IPredictedSerializer>(32);
-        List<IInterpolatedSerializer> netInterpolated = new List<IInterpolatedSerializer>(32);
+        BehaviourSerializer serializers = new BehaviourSerializer();
 
-        bool FindSerializers(GameObject gameObject)
+        void FindSerializers(GameObject gameObject)
         {
-            var typeArray = gameObject.GetComponents<MonoBehaviour>();
+            var behaviourArray = gameObject.GetComponents<MonoBehaviour>();
 
-            var serializedComponentType = typeof(IReplicatedComponent);
-            var predictedComponentType = typeof(IPredictedBase);
-            var interpolatedComponentType = typeof(IInterpolatedBase);
-
-            var hasSerializer = false;
-
-            foreach (var componentType in typeArray)
+            foreach (var componentType in behaviourArray)
             {
-                var managedType = componentType.GetType().BaseType.GenericTypeArguments.FirstOrDefault(t => typeof(IComponentBase).IsAssignableFrom(t));
+                var managedType = componentType.GetType();
 
-                if (managedType == null)
-                    continue;
-
-                if (serializedComponentType.IsAssignableFrom(managedType))
+                var serializer = serializers.CreateNetSerializer(managedType, gameObject);
+                if (serializer != null) 
                 {
-                    var serializer = serializers.CreateNetSerializer(managedType, gameObject, this);
-                    if (serializer != null)
-                    {
-                        netSerializables.Add(serializer);
-                        hasSerializer = true;
-                    }
+                    cacheSerializables.Add(serializer);
                 }
-                else if (predictedComponentType.IsAssignableFrom(managedType))
-                {
-                    var interfaceTypes = managedType.GetInterfaces();
-                    foreach (var it in interfaceTypes)
-                    {
-                        if (it.IsGenericType)
-                        {
-                            var serializer = serializers.CreatePredictedSerializer(managedType, gameObject, this);
-                            if (serializer != null) 
-                            {
-                                netPredicted.Add(serializer);
-                                hasSerializer = true;
-                            }
+            }
+        }
 
-                            break;
-                        }
-                    }
-                }
-                else if (interpolatedComponentType.IsAssignableFrom(managedType))
+        public void Register(int id, GameObject gameObject)
+        {
+            // Grow to make sure there is room for entity            
+            if (id >= replicatedData.Count)
+            {
+                var count = id - replicatedData.Count + 1;
+                var emptyData = new ReplicatedData();
+                for (var i = 0; i < count; i++)
                 {
-                    var interfaceTypes = managedType.GetInterfaces();
-                    foreach (var it in interfaceTypes)
-                    {
-                        if (it.IsGenericType)
-                        {
-                            var serializer = serializers.CreateInterpolatedSerializer(managedType, gameObject, this);
-                            if (serializer != null) 
-                            {
-                                netInterpolated.Add(serializer);
-                                hasSerializer = true;
-                            }
-
-                            break;
-                        }
-                    }
+                    replicatedData.Add(emptyData);
                 }
             }
 
-            return hasSerializer;
-        }
+            cacheSerializables.Clear();
 
-        public void Register(int netId, GameObject gameObject)
-        {
-            // GameDebug.Assert(replicatedData[netId].gameObject == null, "ReplicatedData has entity set:{0}", replicatedData[netId].gameObject);
-
-            netSerializables.Clear();
-            netPredicted.Clear();
-            netInterpolated.Clear();
-
-            if (!FindSerializers(gameObject))
-                return;
+            FindSerializers(gameObject);
 
             var data = new ReplicatedData
             {
                 gameObject = gameObject,
-                serializableArray = netSerializables.ToArray(),
-                predictedArray = netPredicted.ToArray(),
-                interpolatedArray = netInterpolated.ToArray(),
+                serializableArray = cacheSerializables.ToArray(),
             };
 
-            replicatedData.Add(data);
+            replicatedData[id] = data;
         }
 
-        public GameObject Unregister(int netId)
+        public GameObject Unregister(int id)
         {
-            var gameObject = replicatedData[netId].gameObject;
+            var gameObject = replicatedData[id].gameObject;
             GameDebug.Assert(gameObject != null, "Unregister. ReplicatedData still has a gameObject set");
 
-            replicatedData[netId] = new ReplicatedData();
+            replicatedData[id] = new ReplicatedData();
 
             return gameObject;
         }
@@ -131,63 +80,17 @@ namespace QuarksWorld
             foreach (var entry in data.serializableArray)
                 entry.Deserialize(reader, serverTick);
 
-            foreach (var entry in data.predictedArray)
-                entry.Deserialize(reader, serverTick);
-
-            foreach (var entry in data.interpolatedArray)
-                entry.Deserialize(reader, serverTick);
-
             replicatedData[id] = data;
         }
 
         public void GenerateEntitySnapshot(int id, NetworkWriter writer)
         {
-            var data = replicatedData.Find(g => g.gameObject.GetComponent<NetworkIdentity>().netId == id);
+            var data = replicatedData[id];
 
             GameDebug.Assert(data.serializableArray != null, "Failed to generate snapshot. Serializablearray is null");
 
             foreach (var entry in data.serializableArray)
                 entry.Serialize(writer);
-
-            foreach (var entry in data.predictedArray)
-                entry.Serialize(writer);
-
-            foreach (var entry in data.interpolatedArray)
-                entry.Serialize(writer);
-        }
-
-        public void Rollback()
-        {
-            for (int i = 0; i < replicatedData.Count; i++)
-            {
-                if (replicatedData[i].gameObject == null)
-                    continue;
-
-                if (replicatedData[i].predictedArray == null)
-                    continue;
-
-                foreach (var predicted in replicatedData[i].predictedArray)
-                {
-                    predicted.Rollback();
-                }
-            }
-        }
-
-        public void Interpolate(GameTime time)
-        {
-            for (int i = 0; i < replicatedData.Count; i++)
-            {
-                if (replicatedData[i].gameObject == null)
-                    continue;
-
-                if (replicatedData[i].interpolatedArray == null)
-                    continue;
-
-                foreach (var interpolated in replicatedData[i].interpolatedArray)
-                {
-                    interpolated.Interpolate(time);
-                }
-            }
         }
 
         public string GenerateName(int entityId)
@@ -208,7 +111,5 @@ namespace QuarksWorld
             }
             return name;
         }
-
-        public List<ReplicatedData> replicatedData = new List<ReplicatedData>();
     }
 }

@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
-using Mirror;
-using UnityEngine;
-using QuarksWorld.Systems;
 using UnityEngine.SceneManagement;
-using UnityEngine.Profiling;
+using System.Collections.Generic;
+using QuarksWorld.Systems;
+using UnityEngine;
+using Mirror;
 
 namespace QuarksWorld
 {
@@ -24,16 +22,15 @@ namespace QuarksWorld
         public float TickInterval => gameWorld.worldTime.TickInterval;
         public int WorldTick => gameWorld.worldTime.tick;
 
-        internal ServerGameWorld(GameWorld world, BundledResourceManager resourceSystem)
+        internal ServerGameWorld(GameWorld world, BundledResourceManager resources)
         {
             gameWorld = world;
 
             cameraSystem = new CameraSystem(gameWorld);
             levelCameraSystem = new LevelCameraSystem();
-            replicatedSystem = new ReplicatedEntityModuleServer(gameWorld);
-            mirrorHandlingSystem = new MirrorHandlingSystemServer(gameWorld);
-            playerModule = new PlayerModuleServer(gameWorld, resourceSystem);
-            gameModeSystem = new GameModeSystemServer(gameWorld, resourceSystem);
+            replicatedSystem = new ReplicatedEntityModuleServer(gameWorld, resources);
+            playerModule = new PlayerModuleServer(gameWorld, resources);
+            gameModeSystem = new GameModeSystemServer(gameWorld, resources);
             movableSystem = new MovableSystemServer(gameWorld);
         }
 
@@ -41,7 +38,6 @@ namespace QuarksWorld
         {
             levelCameraSystem.Shutdown();
             replicatedSystem.Shutdown();
-            mirrorHandlingSystem.ShutDown();
             movableSystem.Shutdown();
             playerModule.Shutdown();
             gameModeSystem.Shutdown();
@@ -101,7 +97,6 @@ namespace QuarksWorld
         GameWorld gameWorld;
 
         readonly ReplicatedEntityModuleServer replicatedSystem;
-        readonly MirrorHandlingSystemServer mirrorHandlingSystem;
         readonly PlayerModuleServer playerModule;
         readonly GameModeSystemServer gameModeSystem;
         readonly MovableSystemServer movableSystem;

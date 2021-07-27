@@ -6,7 +6,7 @@ namespace QuarksWorld
 {
     public static class Config
     {
-        //===================================================================================================================
+        //=====================================
         // Team Defines
         public const int TeamAny =        -5;
         public const int TeamInvalid =    -4;

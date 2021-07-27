@@ -1,15 +1,16 @@
-using Mirror;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Mirror;
 
 namespace QuarksWorld
 {
-    public class ReplicatedEntityModuleClient
+    public class ReplicatedEntitySystemClient
     {
         [ConfigVar(Name = "replicatedentity.showclientinfo", DefaultValue = "0", Description = "Show replicated system info")]
         public static ConfigVar showInfo;
 
-        public ReplicatedEntityModuleClient()
+        public ReplicatedEntitySystemClient()
         {
             this.entityCollection = new ReplicatedEntityCollection();
         }
@@ -43,9 +44,9 @@ namespace QuarksWorld
             }
         }
 
-        public void Rollback() => entityCollection.Rollback();
+        public void Rollback() { } /* =>  entityCollection.Rollback(); */
 
-        public void Interpolate(GameTime time) => entityCollection.Interpolate(time);
+        public void Interpolate(GameTime time) { } /* => entityCollection.Interpolate(time); */
 
         readonly ReplicatedEntityCollection entityCollection;
     }

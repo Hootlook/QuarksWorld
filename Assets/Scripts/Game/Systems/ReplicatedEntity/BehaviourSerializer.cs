@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 
-namespace QuarksWorld.Experimental
+namespace QuarksWorld
 {
     public struct SerializeContext
     {
@@ -79,6 +79,9 @@ namespace QuarksWorld.Experimental
         void CreateSerializerFactories()
         {
             var replicatedType = typeof(IReplicatedComponent);
+            var replicatedBehaviourType = typeof(IReplicates<>);
+
+            var replicatedFactoryType = typeof(ReplicatedSerializerFactory<>);
 
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -87,24 +90,16 @@ namespace QuarksWorld.Experimental
                     if (!type.IsValueType)
                         continue;
 
-                    if (replicatedType.IsAssignableFrom(type))
+                    if (!replicatedType.IsAssignableFrom(type))
+                        continue;
+
+                    var replicates = type.GetInterface(replicatedBehaviourType.Name);
+                    if (replicates != null)
                     {
-                        var method = type.GetMethod("CreateSerializerFactory");
-                        if (method == null)
-                        {
-                            GameDebug.LogError("Replicated component " + type + " has no CreateSerializerFactory");
-                            continue;
-                        }
+                        var behaviour = replicates.GetGenericArguments().First();
 
-                        if (method.ReturnType != typeof(IReplicatedSerializerFactory))
-                        {
-                            GameDebug.LogError("Replicated component " + type + " CreateSerializerFactory does not have return type IReplicatedBehaviorFactory");
-                            continue;
-                        }
-
-                        var behaviour = type.GetInterfaces().Last().GenericTypeArguments.First();
-
-                        var result = method.Invoke(null, new object[] { });
+                        var constructedFactory = replicatedFactoryType.MakeGenericType(type);
+                        var result = Activator.CreateInstance(constructedFactory);
                         netSerializerFactories.Add(behaviour, (IReplicatedSerializerFactory)result);
                     }
                 }

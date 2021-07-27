@@ -13,6 +13,7 @@ namespace QuarksWorld
         public class Entry
         {
             public WeakAssetReference guid;
+            
             // Each entry has either a asset reference or factory. Never both
             public WeakAssetReference prefab = new WeakAssetReference();
             public ReplicatedEntityFactory factory;
@@ -54,9 +55,14 @@ namespace QuarksWorld
 
         public int GetEntryIndex(WeakAssetReference guid)
         {
+            return GetEntryIndex(guid.GetGuidStr());
+        }
+
+        public int GetEntryIndex(string guid)
+        {
             for (int i = 0; i < entries.Count; i++)
             {
-                if (entries[i].guid.Equals(guid))
+                if (entries[i].guid.GetGuidStr().Equals(guid))
                 {
                     return i;
                 }
