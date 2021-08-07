@@ -29,15 +29,6 @@ namespace QuarksWorld
             rb = GetComponent<Rigidbody>();
         }
 
-        private void FixedUpdate()
-        {
-            var input = new UserCommand();
-
-            UserCommand.AccumulateInput(ref input, Time.deltaTime);
-
-            MovementLogic(input, GetComponent<Rigidbody>());
-        }
-
         public void MovementLogic(UserCommand input, Rigidbody rigidbody)
         {
             if (input.buttons.IsSet(Button.Jump)) lastJumpPress = Time.time;

@@ -71,7 +71,7 @@ namespace QuarksWorld
             {
                 if (player.controlledEntity.GetComponent<Character>())
                 {
-                    Object.Destroy(player.controlledEntity);
+                    world.Despawn(player.controlledEntity);
                 }
             }
 
@@ -80,7 +80,7 @@ namespace QuarksWorld
                 SpawnSpectator(player, spawnPos, spawnRot);
             }
             else
-                SpawnCharacter(player, spawnPos, spawnRot);
+                SpawnPlayer(player, spawnPos, spawnRot);
         }
      
         void FindSpawnTransform()
@@ -98,32 +98,32 @@ namespace QuarksWorld
             }
         }
 
-
         void SpawnSpectator(PlayerState owner, Vector3 position, Quaternion rotation)
         {
             var replicatedRegistry = resources.GetResourceRegistry<ReplicatedEntityRegistry>();
             owner.controlledEntity = resources.CreateEntity(position, replicatedRegistry.entries[1].guid.GetGuid());
         }
 
-        void SpawnCharacter(PlayerState owner, Vector3 position, Quaternion rotation)
+        void SpawnPlayer(PlayerState owner, Vector3 position, Quaternion rotation)
         {
             var heroTypeRegistry = resources.GetResourceRegistry<HeroTypeRegistry>();
+            var replicatedRegistry = resources.GetResourceRegistry<ReplicatedEntityRegistry>();
 
             owner.characterType = owner.characterType < 0 ? 0 : owner.characterType;
             owner.characterType = Mathf.Min(owner.characterType, heroTypeRegistry.entries.Count - 1);
             var heroTypeAsset = heroTypeRegistry.entries[owner.characterType];
 
-            var characterObj = resources.CreateEntity(position, heroTypeAsset.character.GetGuid());
+            var playerObj = resources.CreateEntity(position, replicatedRegistry.entries[2].guid.GetGuid());
 
-            var character = characterObj.GetComponent<Character>();
+            var character = playerObj.GetComponent<Character>();
             character.teamId = 0;
             character.heroTypeIndex = owner.characterType;
             character.heroTypeData = heroTypeAsset;
 
-            var health = characterObj.GetComponent<Health>();
+            var health = playerObj.GetComponent<Health>();
             health.SetMaxHealth(heroTypeAsset.health);
 
-            owner.controlledEntity = characterObj;
+            owner.controlledEntity = playerObj;
         }
 
         BundledResourceManager resources;
