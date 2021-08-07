@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace QuarksWorld
 {
-    public class Movement : MonoBehaviour
+    public class SpectatorMovement : MonoBehaviour
     {
         // Start is called before the first frame update
         void Start()

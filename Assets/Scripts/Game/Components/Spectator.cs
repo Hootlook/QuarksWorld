@@ -2,22 +2,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
+using System;
 
 namespace QuarksWorld
 {
     [DisallowMultipleComponent]
-    public class Spectator : NetworkBehaviour
+    public class Spectator : MonoBehaviour
     {
-        [SyncVar] public Vector3 position;
-        [SyncVar] public Quaternion rotation;
+        public Vector3 position;
+        public Quaternion rotation;
 
         private void Update()
         {
-            if (hasAuthority)
-            {
-                transform.position = position;
-                transform.rotation = rotation;
-            }
+            // if (hasAuthority)
+            // {
+            //     transform.position = position;
+            //     transform.rotation = rotation;
+            // }
         }
     }
 }

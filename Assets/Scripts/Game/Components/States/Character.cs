@@ -7,10 +7,9 @@ using Mirror;
 namespace QuarksWorld
 {
     [DisallowMultipleComponent]
-    public class Character : NetworkBehaviour
+    public class  Character : MonoBehaviour
     {
-        [NonSerialized] [SyncVar] public int heroTypeIndex;
-
+        [NonSerialized] public int heroTypeIndex;
         [NonSerialized] public float eyeHeight = 1.8f;
         [NonSerialized] public string characterName;
         [NonSerialized] public HeroTypeAsset heroTypeData;

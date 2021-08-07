@@ -9,14 +9,12 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5385895584130871922}
-  - component: {fileID: 1478005875227729117}
   - component: {fileID: 5012862024020404840}
   - component: {fileID: 842499505243648112}
-  - component: {fileID: 2075190173573168181}
   - component: {fileID: 6015777010740577169}
   - component: {fileID: 8011400950462433028}
   m_Layer: 0
-  m_Name: Character
+  m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -37,23 +35,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1478005875227729117
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 919636420071071115}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sceneId: 0
-  serverOnly: 0
-  visible: 0
-  m_AssetId: 
-  hasSpawned: 0
 --- !u!114 &5012862024020404840
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -66,8 +47,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3291fee1ef3af6843976c9c7429118c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncMode: 0
-  syncInterval: 0.1
 --- !u!114 &842499505243648112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -80,26 +59,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26e183278eb641d4dbfbb6ec2ad4575a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  syncMode: 0
-  syncInterval: 0.1
   health: 0
   maxHealth: 0
   deathTick: 0
   killedBy: 0
---- !u!114 &2075190173573168181
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 919636420071071115}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e39dd31fdce8fd34fb9696e0a938aa4e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncMode: 0
-  syncInterval: 0.1
 --- !u!54 &6015777010740577169
 Rigidbody:
   m_ObjectHideFlags: 0

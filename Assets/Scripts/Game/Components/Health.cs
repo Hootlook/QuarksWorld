@@ -6,12 +6,12 @@ using Mirror;
 
 namespace QuarksWorld
 {
-    public class Health : NetworkBehaviour
+    public class Health : MonoBehaviour
     {
-        [SyncVar] public float health;
-        [SyncVar] public float maxHealth;
-        [SyncVar] public int deathTick;
-        [SyncVar] public int killedBy;
+        public float health;
+        public float maxHealth;
+        public int deathTick;
+        public int killedBy;
 
         public void SetMaxHealth(float maxHealth)
         {

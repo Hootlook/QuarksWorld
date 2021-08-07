@@ -11,7 +11,7 @@ using Mirror;
 
 namespace QuarksWorld
 {
-    public class Controller : NetworkBehaviour
+    public class BasicMovement : NetworkBehaviour
     {
         // [SyncVar(hook = nameof(OnReceivedPlayerState))]
         // PlayerState latestServerState;

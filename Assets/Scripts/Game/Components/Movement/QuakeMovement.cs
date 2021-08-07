@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace QuarksWorld
 {
-    public class QuakeController : MonoBehaviour
+    public class QuakeMovement : MonoBehaviour
     {
         private float accel = 200f;         // How fast the player accelerates on the ground
         private float airAccel = 200f;      // How fast the player accelerates in the air

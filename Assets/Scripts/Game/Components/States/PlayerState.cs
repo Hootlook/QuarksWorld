@@ -6,14 +6,14 @@ using Mirror;
 namespace QuarksWorld
 {
     [DisallowMultipleComponent]
-    public class PlayerState : NetworkBehaviour
+    public class PlayerState : MonoBehaviour
     {
-        [SyncVar] public int id;
-        [SyncVar] public string playerName;
-        [SyncVar] public int teamIndex;
-        [SyncVar] public int score;
-        [SyncVar] public GameObject controlledEntity;
-        [SyncVar] public bool gameModeSystemInitialized;
+        public int id;
+        public string playerName;
+        public int teamIndex;
+        public int score;
+        public GameObject controlledEntity;
+        public bool gameModeSystemInitialized;
 
         // These are only sync'hed to owning client
         public bool displayScoreBoard;
@@ -48,9 +48,9 @@ namespace QuarksWorld
 
         void OnDestroy() => List.Remove(this); 
 
-        public override void OnStartAuthority() => localPlayer = this;
+        // public override void OnStartAuthority() => localPlayer = this;
         
-        public override void OnStopAuthority() => localPlayer = null;
+        // public override void OnStopAuthority() => localPlayer = null;
         
         public static List<PlayerState> List = new List<PlayerState>();
     }

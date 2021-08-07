@@ -9,7 +9,7 @@ namespace QuarksWorld
     {
         float eyeHeight;
         Transform weapons;
-        Movement movement;
+        IMovement movement;
 
         void OnPickupItem(Item item)
         {

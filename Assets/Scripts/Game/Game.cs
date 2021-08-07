@@ -261,10 +261,47 @@ namespace QuarksWorld
         {
             return game.isHeadless;
         }
-        
+
+        public static void SetMousePointerLock(bool locked)
+        {
+            Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
+            Cursor.visible = !locked;
+            MouseLockFrameNo = Time.frameCount; // prevent default handling in WindowFocusUpdate overriding requests
+        }
+
         public static bool GetMousePointerLock()
         {
             return Cursor.lockState == CursorLockMode.Locked;
+        }
+
+        void WindowFocusUpdate()
+        {
+            // bool menusShowing = (clientFrontend != null && clientFrontend.menuShowing != ClientFrontend.MenuShowing.None);
+            bool lockWhenClicked = /*!menusShowing &&*/ !Console.IsOpen();
+
+            if (MouseLockFrameNo == Time.frameCount)
+            {
+                SetMousePointerLock(true);
+                return;
+            }
+
+            if (lockWhenClicked)
+            {
+                // Default behaviour when no menus or anything. Catch mouse on click, release on escape.
+                if (UnityEngine.Input.GetMouseButtonUp(0) && !GetMousePointerLock())
+                    SetMousePointerLock(true);
+
+                if (UnityEngine.Input.GetKeyUp(KeyCode.Escape) && GetMousePointerLock())
+                    SetMousePointerLock(false);
+            }
+            else
+            {
+                // When menu or console open, release lock
+                if (GetMousePointerLock())
+                {
+                    SetMousePointerLock(false);
+                }
+            }
         }
 
         public void LoadLevel(string levelname)
@@ -279,7 +316,6 @@ namespace QuarksWorld
 
             Game.game.levelManager.LoadLevel(levelname);
         }
-
 
         #region Camera Managing
 
@@ -422,6 +458,8 @@ namespace QuarksWorld
         public bool isHeadless;
         long stopwatchFrequency;
         Stopwatch clock;
+
+        static int MouseLockFrameNo;
     }
 }
 
