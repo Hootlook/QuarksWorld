@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Mirror;
+using QuarksWorld.Components;
 using UnityEngine;
 
 namespace QuarksWorld.Systems
@@ -21,7 +22,7 @@ namespace QuarksWorld.Systems
         {
             foreach (var box in movables)
             {
-                NetworkServer.Destroy(box);
+                // NetworkServer.Destroy(box);
             }
             movables.Clear();
         }
@@ -49,12 +50,13 @@ namespace QuarksWorld.Systems
             int x = spawnNum % 10 - 5;
             int z = spawnNum / 10 - 5;
 
-            GameObject obj = world.Spawn((GameObject)Resources.Load("Prefabs/MovableBox"), Vector3.up * 5, Quaternion.identity);
+            var prefab = (GameObject)Resources.Load("Prefabs/MovableBox");
+            var movableObj = world.Spawn<Movable>(prefab, Vector3.up * 5, Quaternion.identity);
 
-            movables.Add(obj);
+            movables.Add(movableObj);
         }
 
-        private List<GameObject> movables = new List<GameObject>();
+        private List<Movable> movables = new List<Movable>();
         private GameWorld world;
     }
 }

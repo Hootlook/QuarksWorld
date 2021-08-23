@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Entities;
 using UnityEditor;
 using UnityEngine;
 
@@ -29,20 +30,21 @@ namespace QuarksWorld
             }
         }
 
-        public GameObject Create(GameWorld world, GameObject repEntity)
+        public Entity Create(GameWorld world, ReplicatedEntity repEntity)
         {
             var prefab = repEntity.gameObject;
 
             if (prefab == null)
             {
                 GameDebug.LogError("Cant create. Not gameEntityType. GameEntityTypeDefinition:" + name);
-                return null;
+                return Entity.Null;
             }
 
-            var gameObject = world.Spawn(prefab);
-            gameObject.name = string.Format("{0}", prefab.name);
+            var gameObjectEntity = world.Spawn<GameObjectEntity>(prefab);
+            gameObjectEntity.name = string.Format("{0}", prefab.name);
+            var entity = gameObjectEntity.Entity;
 
-            return gameObject;
+            return entity;
         }
 
         public Entry GetEntry(WeakAssetReference guid)

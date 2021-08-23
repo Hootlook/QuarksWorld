@@ -128,7 +128,7 @@ namespace QuarksWorld
             var prefab = resource as GameObject;
             if (prefab != null)
             {
-                var gameObject = gameWorld.Spawn(prefab);
+                var gameObject = gameWorld.Spawn<Transform>(prefab).gameObject;
                 return gameObject;
             }
 

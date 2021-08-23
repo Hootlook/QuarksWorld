@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Entities;
 
 namespace QuarksWorld.Systems
 {
@@ -10,22 +11,22 @@ namespace QuarksWorld.Systems
         void Shutdown();
 
         void Restart();
-        void Update();
+        void Update(Player[] players);
 
-        void OnPlayerJoin(PlayerState player);
-        void OnPlayerRespawn(PlayerState player, ref Vector3 position, ref Quaternion rotation);
-        void OnPlayerKilled(PlayerState victim, PlayerState killer);
+        void OnPlayerJoin(Player player);
+        void OnPlayerRespawn(Player player, ref Vector3 position, ref Quaternion rotation);
+        void OnPlayerKilled(Player victim, Player killer);
     }
 
     public class NullGameMode : IGameMode
     {
         public void Initialize(GameWorld world, GameModeSystemServer gameModeSystemServer) { }
-        public void OnPlayerJoin(PlayerState teamMember) { }
-        public void OnPlayerKilled(PlayerState victim, PlayerState killer) { }
-        public void OnPlayerRespawn(PlayerState player, ref Vector3 position, ref Quaternion rotation) { }
+        public void OnPlayerJoin(Player teamMember) { }
+        public void OnPlayerKilled(Player victim, Player killer) { }
+        public void OnPlayerRespawn(Player player, ref Vector3 position, ref Quaternion rotation) { }
         public void Restart() { }
         public void Shutdown() { }
-        public void Update() { }
+        public void Update(Player[] players) { }
     }
 
     public class Team
@@ -34,13 +35,18 @@ namespace QuarksWorld.Systems
         public int score;
     }
 
-    public class GameModeSystemServer
+    [DisableAutoCreation]
+    public class GameModeSystemServer : SystemBase
     {
         [ConfigVar(Name = "mp.respawndelay", DefaultValue = "10", Description = "Time from death to respawning")]
         public static ConfigVar respawnDelay;
 
         [ConfigVar(Name = "mp.modename", DefaultValue = "deathmatch", Description = "Which gamemode to use")]
         public static ConfigVar modeName;
+
+        EntityQuery playersEntityQuery;
+        EntityQuery teamBaseEntityQuery;
+        EntityQuery spawnPointEntityQuery;
 
         public readonly GameModeState gameModeState;
 
@@ -49,7 +55,7 @@ namespace QuarksWorld.Systems
 
         public GameModeSystemServer(GameWorld gameWorld, BundledResourceManager resourcesSystem)
         {
-            world = gameWorld;
+            this.gameWorld = gameWorld;
             resources = resourcesSystem;
             currentGameModeName = "";
 
@@ -58,7 +64,7 @@ namespace QuarksWorld.Systems
             var characterAssetRef = resources.GetResourceRegistry<ReplicatedEntityRegistry>().entries[2].guid;
 
             gameModePrefab = (GameObject)resources.GetSingleAssetResource(gameModeStateAssetRef);
-            gameModeState = world.Spawn<GameModeState>(gameModePrefab);
+            gameModeState = this.gameWorld.Spawn<GameModeState>(gameModePrefab);
             gameModeState.name = gameModePrefab.name;
 
             gameModeState.teams = teams;
@@ -66,6 +72,15 @@ namespace QuarksWorld.Systems
             spectatorPrefab = (GameObject)resources.GetSingleAssetResource(spectatorAssetRef);
             characterPrefab = (GameObject)resources.GetSingleAssetResource(characterAssetRef);
         }
+
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+            playersEntityQuery = GetEntityQuery(typeof(Player));
+            teamBaseEntityQuery = GetEntityQuery(typeof(TeamBase));
+            spawnPointEntityQuery = GetEntityQuery(typeof(SpawnPoint));
+        }
+
 
         public void Restart()
         {
@@ -82,8 +97,8 @@ namespace QuarksWorld.Systems
                 teams[i].score = -1;
             }
 
-            var players = PlayerState.List;
-            for (int i = 0, c = players.Count; i < c; ++i)
+            var players = playersEntityQuery.ToComponentArray<Player>();
+            for (int i = 0, c = players.Length; i < c; ++i)
             {
                 var player = players[i];
                 player.score = 0;
@@ -100,21 +115,21 @@ namespace QuarksWorld.Systems
         {
             gameMode.Shutdown();
 
-            world.RequestDespawn(gameModeState.gameObject);
+            gameWorld.RequestDespawn(gameModeState.gameObject);
         }
 
         float timerStart;
         ConfigVar timerLength;
         public void StartGameTimer(ConfigVar seconds, string message)
         {
-            timerStart = Time.time;
+            timerStart = UnityEngine.Time.time;
             timerLength = seconds;
             gameModeState.gameTimerMessage = message;
         }
 
         public int GetGameTimer()
         {
-            return Mathf.Max(0, Mathf.FloorToInt(timerStart + timerLength.FloatValue - Time.time));
+            return Mathf.Max(0, Mathf.FloorToInt(timerStart + timerLength.FloatValue - UnityEngine.Time.time));
         }
 
         public void SetRespawnEnabled(bool enable)
@@ -122,7 +137,7 @@ namespace QuarksWorld.Systems
             enableRespawning = enable;
         }
 
-        public void Update()
+        protected override void OnUpdate()
         {
             // Handle change of game mode
             if (currentGameModeName != modeName.Value)
@@ -138,17 +153,17 @@ namespace QuarksWorld.Systems
                         gameMode = new NullGameMode();
                         break;
                 }
-                gameMode.Initialize(world, this);
+                gameMode.Initialize(gameWorld, this);
                 GameDebug.Log("New gamemode : '" + gameMode.GetType().Name + "'");
                 Restart();
                 return;
             }
 
             // Handle joining players
-            var playerStates = PlayerState.List;
-            for (int i = 0; i < playerStates.Count; ++i)
+            var players = playersEntityQuery.ToComponentArray<Player>();
+            for (int i = 0; i < players.Length; ++i)
             {
-                var player = playerStates[i];
+                var player = players[i];
                 if (!player.gameModeSystemInitialized)
                 {
                     player.score = 0;
@@ -160,44 +175,44 @@ namespace QuarksWorld.Systems
                 }
             }
 
-            gameMode.Update();
+            gameMode.Update(players);
 
             // General rules
             gameModeState.gameTimerSeconds = GetGameTimer();
 
-            for (int i = 0; i < playerStates.Count; i++)
+            for (int i = 0; i < players.Length; i++)
             {
-                var player = playerStates[i];
-                
-                if (player.controlledEntity == null)
+                var player = players[i];
+
+                if (player.controlledEntity == Entity.Null)
                 {
                     var position = new Vector3(0.0f, 0.2f, 0.0f);
                     var rotation = Quaternion.identity;
                     GetRandomSpawnTransform(player.teamIndex, ref position, ref rotation);
 
                     gameMode.OnPlayerRespawn(player, ref position, ref rotation);
-                  
+
                     if (player.teamIndex == Config.TeamSpectator)
                     {
-                        SpawnSpectator(player, position, rotation);
+                        // SpawnSpectator(player, position, rotation);
                     }
                     else
                     {
-                        SpawnCharacter(player, position, rotation);
+                        // SpawnCharacter(player, position, rotation);
                     }
                 }
-                    
+
                 // Has new entity been requested
                 if (player.requestedCharacterType != -1 || player.requestedTeamIndex != -1)
                 {
                     player.characterType = player.requestedCharacterType;
                     player.teamIndex = player.requestedTeamIndex;
 
-                    if (player.controlledEntity != null)
+                    if (player.controlledEntity != Entity.Null)
                     {
-                        world.Despawn(player.controlledEntity);
+                        gameWorld.RequestDespawn(player.controlledEntity);
 
-                        player.controlledEntity = null;
+                        player.controlledEntity = Entity.Null;
                     }
 
                     player.requestedCharacterType = -1;
@@ -205,19 +220,21 @@ namespace QuarksWorld.Systems
                     continue;
                 }
 
-                if (player.controlledEntity.TryGetComponent(out Health healthState))
+                if (EntityManager.HasComponent<Health>(player.controlledEntity))
                 {
+                    var healthState = EntityManager.GetComponentObject<Health>(player.controlledEntity);
+
                     // Is character dead ?
                     if (healthState.health == 0)
                     {
                         // Send kill msg
-                        if (healthState.deathTick == world.worldTime.tick)
+                        if (healthState.deathTick == gameWorld.worldTime.tick)
                         {
-                            int killerIndex = FindPlayerControlling(PlayerState.List, healthState.killedBy);
-                            PlayerState killerPlayer = null;
+                            int killerIndex = FindPlayerControlling(players, healthState.killedBy);
+                            Player killerPlayer = null;
                             if (killerIndex != -1)
                             {
-                                killerPlayer = playerStates[killerIndex];
+                                killerPlayer = players[killerIndex];
                                 var format = KillMessages[Random.Range(0, KillMessages.Length)];
                                 GameDebug.Log($"{killerPlayer.playerName} {format} {player.playerName}");
                             }
@@ -226,50 +243,24 @@ namespace QuarksWorld.Systems
                                 var format = SuicideMessages[Random.Range(0, SuicideMessages.Length)];
                                 GameDebug.Log($"{format} {player.playerName}");
                             }
-                        
+
                             gameMode.OnPlayerKilled(player, killerPlayer);
 
                             // Respawn dead players except if in ended mode
-                            if (enableRespawning && (world.worldTime.tick - healthState.deathTick) * world.worldTime.TickInterval > respawnDelay.IntValue)
+                            if (enableRespawning && (gameWorld.worldTime.tick - healthState.deathTick) * gameWorld.worldTime.TickInterval > respawnDelay.IntValue)
                             {
                                 // Despawn current controlled entity. New entity will be created later
-                                if (player.controlledEntity.GetComponent<Character>())
+                                if (EntityManager.HasComponent<Character>(player.controlledEntity))
                                 {
-                                    world.RequestDespawn(player.controlledEntity);
+                                    gameWorld.RequestDespawn(player.controlledEntity);
                                 }
 
-                                player.controlledEntity = null;
+                                player.controlledEntity = Entity.Null;
                             }
                         }
                     }
                 }
             }
-        }
-
-        void SpawnSpectator(PlayerState owner, Vector3 position, Quaternion rotation)
-        {
-            owner.controlledEntity = world.Spawn(spectatorPrefab, position, rotation);
-        }
-
-        void SpawnCharacter(PlayerState owner, Vector3 position, Quaternion rotation)
-        {
-            var heroTypeRegistry = resources.GetResourceRegistry<HeroTypeRegistry>();
-
-            owner.characterType = owner.characterType < 0 ? 0 : owner.characterType;
-            owner.characterType = Mathf.Min(owner.characterType, heroTypeRegistry.entries.Count - 1);
-            var heroTypeAsset = heroTypeRegistry.entries[owner.characterType];
-
-            var characterObj = world.Spawn(characterPrefab, position, rotation);
-
-            var character = characterObj.GetComponent<Character>();
-            character.teamId = 0;
-            character.heroTypeIndex = owner.characterType;
-            character.heroTypeData = heroTypeAsset;
-            
-            var health = characterObj.GetComponent<Health>();
-            health.SetMaxHealth(heroTypeAsset.health);
-
-            owner.controlledEntity = characterObj;
         }
 
         public void CreateTeam(string name)
@@ -279,7 +270,7 @@ namespace QuarksWorld.Systems
             teams.Add(team);
         }
 
-        public void RequestNextChar(PlayerState player)
+        public void RequestNextChar(Player player)
         {
             if (!player.allowedCharacterSwitch)
                 return;
@@ -291,16 +282,16 @@ namespace QuarksWorld.Systems
             GameDebug.Log($"Player {player.id} switched to: {heroTypeRegistry.entries[player.requestedCharacterType].name}");
         }
 
-        public void AssignCharacter(PlayerState player, string characterName)
+        public void AssignCharacter(Player player, string characterName)
         {
             if (!player.allowedCharacterSwitch)
                 return;
 
             var heroTypeRegistry = resources.GetResourceRegistry<HeroTypeRegistry>();
-            
+
             var heroAsset = heroTypeRegistry.entries.Find(h => h.name == characterName);
-            
-            if (heroAsset == null) 
+
+            if (heroAsset == null)
             {
                 GameDebug.LogWarning($"PlayerClass '{characterName}' doesn't exist");
                 return;
@@ -311,7 +302,7 @@ namespace QuarksWorld.Systems
             Console.OutputString($"You'll be '{heroAsset.name}' next life", player.id);
         }
 
-        public void AssignTeam(PlayerState player, string teamName)
+        public void AssignTeam(Player player, string teamName)
         {
             teamName = teamName.ToLower();
 
@@ -323,7 +314,7 @@ namespace QuarksWorld.Systems
 
             Team team = teams.Find(t => t.name.ToLower() == teamName);
 
-            if(team == null) 
+            if (team == null)
             {
                 GameDebug.LogWarning($"Team '{teamName}' doesn't exist");
                 return;
@@ -334,12 +325,12 @@ namespace QuarksWorld.Systems
             Console.OutputString($"Your team will be '{team.name}' next life", player.id);
         }
 
-        public void AssignTeamBalanced(PlayerState player)
+        public void AssignTeamBalanced(Player player)
         {
             // Count team sizes
-            var players = PlayerState.List;
+            var players = playersEntityQuery.ToComponentArray<Player>();
             int[] teamCount = new int[teams.Count];
-            for (int i = 0, c = players.Count; i < c; ++i)
+            for (int i = 0, c = players.Length; i < c; ++i)
             {
                 var idx = players[i].teamIndex;
                 if (idx < teamCount.Length)
@@ -363,15 +354,15 @@ namespace QuarksWorld.Systems
             GameDebug.Log("Assigned team " + joinIndex + " to player " + player);
         }
 
-        int FindPlayerControlling(List<PlayerState> players, int id)
+        int FindPlayerControlling(Player[] players, Entity entity)
         {
-            if (id == -1)
+            if (entity == Entity.Null)
                 return -1;
 
-            for (int i = 0, c = players.Count; i < c; ++i)
+            for (int i = 0, c = players.Length; i < c; ++i)
             {
                 var playerState = players[i];
-                if (playerState.id == id)
+                if (playerState.controlledEntity == entity)
                     return i;
             }
             return -1;
@@ -380,7 +371,7 @@ namespace QuarksWorld.Systems
         public bool GetRandomSpawnTransform(int teamIndex, ref Vector3 pos, ref Quaternion rot)
         {
             // Make list of spawnpoints for team 
-            var teamSpawns = new List<SpawnPoint>(); 
+            var teamSpawns = new List<SpawnPoint>();
             var spawnPoints = Object.FindObjectsOfType<SpawnPoint>();
             for (var i = 0; i < spawnPoints.Length; i++)
             {
@@ -424,11 +415,11 @@ namespace QuarksWorld.Systems
         "#1EA00001", //"#00FFEAFF",
         };
 
-        readonly GameWorld world;
-        
+        readonly GameWorld gameWorld;
+
         readonly GameObject spectatorPrefab;
         readonly GameObject characterPrefab;
-        
+
         readonly GameObject gameModePrefab;
         readonly BundledResourceManager resources;
         int[] prevTeamSpawnPointIndex = new int[2];

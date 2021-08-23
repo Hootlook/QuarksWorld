@@ -151,6 +151,6 @@ namespace QuarksWorld
         // }
 
         int localPlayerId;
-        PlayerState localPlayer;
+        Player localPlayer;
     }
 }

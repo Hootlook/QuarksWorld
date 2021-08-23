@@ -59,14 +59,14 @@ namespace QuarksWorld
             cameraSystem.Execute();
         }
 
-        internal void SpawnPlayer(NetworkConnection conn)
+        internal void SpawnPlayer(int playerId)
         {
-            playerModule.SpawnPlayer(conn);
+            playerModule.CreatePlayer(playerId, "ConnectingPlayer");
         }
 
         internal void AssignPlayerTeam(int clientId, string team = "", string role = "")
         {
-            PlayerState player = NetworkServer.connections[clientId].identity.GetComponent<PlayerState>();
+            Player player = NetworkServer.connections[clientId].identity.GetComponent<Player>();
 
             if (player != null) 
             {
@@ -222,12 +222,12 @@ namespace QuarksWorld
 
         void OnAddPlayer(NetworkConnection conn, AddPlayerMessage msg)
         {
-            serverWorld?.SpawnPlayer(conn);
+            serverWorld?.SpawnPlayer(conn.connectionId);
         }
 
         void OnUserCommand(NetworkConnection conn, UserCommand cmd)
         {
-            var player = conn.identity.GetComponent<PlayerState>();
+            var player = conn.identity.GetComponent<Player>();
 
             if (cmd.tick != gameWorld.worldTime.tick)
                 return;

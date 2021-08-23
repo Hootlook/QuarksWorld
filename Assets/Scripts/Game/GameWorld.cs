@@ -1,10 +1,33 @@
 using Object = UnityEngine.Object;
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Entities;
 using UnityEngine;
 using System;
 
 namespace QuarksWorld
 {
+    [DisableAutoCreation]
+    public class DestroyDespawning : ComponentSystem
+    {
+        EntityQuery Group;
+
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+            Group = GetEntityQuery(typeof(DespawningEntity));
+        }
+
+        protected override void OnUpdate()
+        {
+            var entityArray = Group.ToEntityArray(Allocator.Temp);
+            for (var i = 0; i < entityArray.Length; i++)
+            {
+                PostUpdateCommands.DestroyEntity(entityArray[i]);
+            }
+        }
+    }
+
     public class GameWorld
     {
         [ConfigVar(Name = "gameobjecthierarchy", Description = "Should gameobject be organized in a gameobject hierarchy", DefaultValue = "0")]
@@ -19,16 +42,10 @@ namespace QuarksWorld
         public double lastServerTick;
         public double nextTickTime = 0;
 
-        public event Action<GameObject> OnSpawn;
-        public event Action<GameObject> OnDespawn;
-
-        public List<GameObject> GameObjects
-        {
-            get { return gameObjects; }
-        }
-
         // SceneRoot can be used to organize crated gameobject in scene view. Is null in standalone.
         public GameObject SceneRoot => sceneRoot;
+        public World GetECSWorld() => ECSWorld;
+        public EntityManager GetEntityManager() => ECSWorld.EntityManager;
 
         public GameWorld(string name = "world")
         {
@@ -40,29 +57,44 @@ namespace QuarksWorld
                 Object.DontDestroyOnLoad(sceneRoot);
             }
 
+            ECSWorld = World.DefaultGameObjectInjectionWorld;
+
             worldTime.TickRate = 60;
 
             nextTickTime = Game.frameTime;
 
             Worlds.Add(this);
+
+            destroyDespawningSystem = ECSWorld.CreateSystem<DestroyDespawning>();
         }
 
         public void Shutdown()
         {
-            foreach (var entity in gameObjects)
+            GameDebug.Log("GameWorld " + ECSWorld.Name + " shutting down");
+
+            foreach (var entity in dynamicEntities)
             {
                 if (despawnRequests.Contains(entity))
-                    continue;         
+                    continue;
+
+                if (entity == null)
+                    continue;
+
+                var gameObjectEntity = entity.GetComponent<GameObjectEntity>();
+                if (gameObjectEntity != null && !ECSWorld.EntityManager.Exists(gameObjectEntity.Entity))
+                    continue;
 
                 RequestDespawn(entity);
             }
-
             ProcessDespawns();
 
             Worlds.Remove(this);
 
-            Object.Destroy(sceneRoot);
+            GameObject.Destroy(sceneRoot);
+
+            ECSWorld.DestroySystem(destroyDespawningSystem);
         }
+
 
         public T Spawn<T>(GameObject prefab) where T : Component
         {
@@ -71,12 +103,11 @@ namespace QuarksWorld
 
         public T Spawn<T>(GameObject prefab, Vector3 position, Quaternion rotation) where T : Component
         {
-            var gameObject = SpawnInternal(prefab, position, rotation);
+            var gameObject = SpawnInternal(prefab, position, rotation, out _);
             if (gameObject == null)
                 return null;
 
             var result = gameObject.GetComponent<T>();
-            var f = gameObject.GetComponents<Component>();
             if (result == null)
             {
                 GameDebug.Log(string.Format("Spawned entity '{0}' didn't have component '{1}'", prefab, typeof(T).FullName));
@@ -86,40 +117,20 @@ namespace QuarksWorld
             return result;
         }
 
-        public GameObject Spawn(GameObject prefab)
-        {
-            return SpawnInternal(prefab, Vector3.zero, Quaternion.identity);
-        }
-
-        public GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation)
-        {
-            return SpawnInternal(prefab, position, rotation);
-        }
-
-        public GameObject Spawn(string name, params Type[] components)
+        public GameObject Spawn(string name, params System.Type[] components)
         {
             var go = new GameObject(name, components);
-
-            RegisterInternal(go);
-
+            RegisterInternal(go, true);
             return go;
         }
 
-        public GameObject SpawnInternal(GameObject prefab, Vector3 position, Quaternion rotation)
+        public GameObject SpawnInternal(GameObject prefab, Vector3 position, Quaternion rotation, out Entity entity)
         {
-            var gameObject = Object.Instantiate(prefab, position, rotation);
-            gameObject.name = prefab.name;
+            var go = Object.Instantiate(prefab, position, rotation);
 
-            RegisterInternal(gameObject);
+            entity = RegisterInternal(go, true);
 
-            return gameObject;
-        }
-
-        public void Despawn(GameObject entity)
-        {
-            OnDespawn?.Invoke(entity);
-            gameObjects.Remove(entity);
-            Object.Destroy(entity);
+            return go;
         }
 
         public void RequestDespawn(GameObject entity)
@@ -130,31 +141,86 @@ namespace QuarksWorld
                 return;
             }
 
+            var gameObjectEntity = entity.GetComponent<GameObjectEntity>();
+            if (gameObjectEntity != null)
+                ECSWorld.EntityManager.AddComponent(gameObjectEntity.Entity, typeof(DespawningEntity));
+
             despawnRequests.Add(entity);
+        }
+
+        public void RequestDespawn(GameObject entity, EntityCommandBuffer commandBuffer)
+        {
+            if (despawnRequests.Contains(entity))
+            {
+                GameDebug.Assert(false, "Trying to request depawn of same gameobject({0}) multiple times", entity.name);
+                return;
+            }
+
+            var gameObjectEntity = entity.GetComponent<GameObjectEntity>();
+            if (gameObjectEntity != null)
+                commandBuffer.AddComponent(gameObjectEntity.Entity, new DespawningEntity());
+
+            despawnRequests.Add(entity);
+        }
+
+        public void RequestDespawn(Entity entity)
+        {
+            ECSWorld.EntityManager.AddComponent(entity, typeof(DespawningEntity));
+            despawnEntityRequests.Add(entity);
+        }
+
+        public void RequestDespawn(EntityCommandBuffer commandBuffer, Entity entity)
+        {
+            if (despawnEntityRequests.Contains(entity))
+            {
+                GameDebug.Assert(false, "Trying to request depawn of same gameobject({0}) multiple times", entity);
+                return;
+            }
+
+            commandBuffer.AddComponent(entity, new DespawningEntity());
+            despawnEntityRequests.Add(entity);
         }
 
         public void ProcessDespawns()
         {
             foreach (var gameObject in despawnRequests)
             {
-                OnDespawn?.Invoke(gameObject);
-                gameObjects.Remove(gameObject);
+                dynamicEntities.Remove(gameObject);
                 Object.Destroy(gameObject);
             }
 
+            foreach (var entity in despawnEntityRequests)
+            {
+                ECSWorld.EntityManager.DestroyEntity(entity);
+            }
+            despawnEntityRequests.Clear();
             despawnRequests.Clear();
+
+            destroyDespawningSystem.Update();
         }
 
-        void RegisterInternal(GameObject gameObject)
+        Entity RegisterInternal(GameObject gameObject, bool isDynamic)
         {
-            gameObjects.Add(gameObject);
-            OnSpawn?.Invoke(gameObject);
+            // If gameObject has GameObjectEntity it is already registered in entitymanager. If not we register it here  
+            var gameObjectEntity = gameObject.GetComponent<GameObjectEntity>();
+            if (gameObjectEntity == null)
+                GameObjectEntity.AddToEntityManager(ECSWorld.EntityManager, gameObject);
+
+            if (isDynamic)
+                dynamicEntities.Add(gameObject);
+
+            return gameObjectEntity != null ? gameObjectEntity.Entity : Entity.Null;
         }
+
+        World ECSWorld;
 
         GameObject sceneRoot;
 
-        List<GameObject> gameObjects = new List<GameObject>();
+        DestroyDespawning destroyDespawningSystem;
+
+        List<GameObject> dynamicEntities = new List<GameObject>();
         List<GameObject> despawnRequests = new List<GameObject>(32);
+        List<Entity> despawnEntityRequests = new List<Entity>(32);
     }
     
     public struct GameTime

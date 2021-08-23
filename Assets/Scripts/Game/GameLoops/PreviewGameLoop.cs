@@ -1,25 +1,26 @@
 using System.Collections;
 using System.Collections.Generic;
 using QuarksWorld.Systems;
+using Unity.Entities;
 using UnityEngine;
 
 namespace QuarksWorld
 {
-    public class PreviewGameMode
+    [DisableAutoCreation]
+    public class PreviewGameMode : SystemBase
     {
         public int respawnDelay = 20;
 
-        public PreviewGameMode(GameWorld world, PlayerState player, BundledResourceManager resources)
+        public PreviewGameMode(GameWorld world, Player player) : base(world)
         {
-            this.resources = resources;
             this.player = player;
-            this.world = world;
+            this.gameWorld = world;
 
             spawnPos = Vector3.up * 2f;
             spawnRot = Quaternion.identity;
         }
 
-        public void Update()
+        protected override void OnUpdate()
         {
             if (player.requestedCharacterType != -1 && player.characterType != player.requestedCharacterType)
             {
@@ -40,15 +41,15 @@ namespace QuarksWorld
                 return;
             }
 
-            if (player.controlledEntity.TryGetComponent(out Health health))
+            if (player.TryGetComponent(out Health health))
             {
                 if (!respawnPending && health.health == 0)
                 {
                     respawnPending = true;
-                    respawnTime = Time.time + respawnDelay;
+                    respawnTime = UnityEngine.Time.time + respawnDelay;
                 }
 
-                if (respawnPending && Time.time > respawnTime)
+                if (respawnPending && UnityEngine.Time.time > respawnTime)
                 {
                     Spawn(false);
                     respawnPending = false;
@@ -58,7 +59,7 @@ namespace QuarksWorld
 
         void Spawn(bool keepCharPosition)
         {
-            if (keepCharPosition && player.controlledEntity != null && player.controlledEntity.TryGetComponent(out Character character))
+            if (keepCharPosition && player.controlledEntity != Entity.Null && player.TryGetComponent(out Character character))
             {
                 spawnPos = character.transform.position;
                 spawnRot = character.transform.rotation;
@@ -69,25 +70,25 @@ namespace QuarksWorld
             // Despawn old controlled
             if (player.controlledEntity != null)
             {
-                if (player.controlledEntity.GetComponent<Character>())
+                if (player.GetComponent<Character>())
                 {
-                    world.Despawn(player.controlledEntity);
+                    gameWorld.RequestDespawn(player.gameObject);
                 }
             }
 
-            if (player.characterType == Config.TeamSpectator)
-            {
-                SpawnSpectator(player, spawnPos, spawnRot);
-            }
-            else
-                SpawnPlayer(player, spawnPos, spawnRot);
+            // if (player.characterType == Config.TeamSpectator)
+            // {
+            //     // SpawnSpectator(player, spawnPos, spawnRot);
+            // }
+            // else
+                // PlayerSpawnRequest.Create(, 0, spawnPos, spawnRot, player.controlledEntity);
         }
      
         void FindSpawnTransform()
         {
             // Find random spawnpoint that matches teamIndex
             var spawnpoints = Object.FindObjectsOfType<SpawnPoint>();
-            var offset = UnityEngine.Random.Range(0, spawnpoints.Length);
+            var offset = Random.Range(0, spawnpoints.Length);
             for (var i = 0; i < spawnpoints.Length; ++i)
             {
                 var sp = spawnpoints[(i + offset) % spawnpoints.Length];
@@ -98,39 +99,9 @@ namespace QuarksWorld
             }
         }
 
-        void SpawnSpectator(PlayerState owner, Vector3 position, Quaternion rotation)
-        {
-            var replicatedRegistry = resources.GetResourceRegistry<ReplicatedEntityRegistry>();
-            owner.controlledEntity = resources.CreateEntity(position, replicatedRegistry.entries[1].guid.GetGuid());
-        }
+        GameWorld gameWorld;
 
-        void SpawnPlayer(PlayerState owner, Vector3 position, Quaternion rotation)
-        {
-            var heroTypeRegistry = resources.GetResourceRegistry<HeroTypeRegistry>();
-            var replicatedRegistry = resources.GetResourceRegistry<ReplicatedEntityRegistry>();
-
-            owner.characterType = owner.characterType < 0 ? 0 : owner.characterType;
-            owner.characterType = Mathf.Min(owner.characterType, heroTypeRegistry.entries.Count - 1);
-            var heroTypeAsset = heroTypeRegistry.entries[owner.characterType];
-
-            var playerObj = resources.CreateEntity(position, replicatedRegistry.entries[2].guid.GetGuid());
-
-            var character = playerObj.GetComponent<Character>();
-            character.teamId = 0;
-            character.heroTypeIndex = owner.characterType;
-            character.heroTypeData = heroTypeAsset;
-
-            var health = playerObj.GetComponent<Health>();
-            health.SetMaxHealth(heroTypeAsset.health);
-
-            owner.controlledEntity = playerObj;
-        }
-
-        BundledResourceManager resources;
-
-        GameWorld world;
-
-        PlayerState player;
+        Player player;
         Quaternion spawnRot;
         Vector3 spawnPos;
 
@@ -155,6 +126,8 @@ namespace QuarksWorld
 
             gameWorld = new GameWorld("World[PreviewGameLoop]");
 
+            previewGameMode = gameWorld.GetECSWorld().AddSystem(new PreviewGameMode(gameWorld, player));
+            
             if (args.Length > 0)
             {
                 Game.game.levelManager.LoadLevel(args[0]);
@@ -210,9 +183,7 @@ namespace QuarksWorld
         {
             resources = new BundledResourceManager(gameWorld, "BundledResources/Client");
 
-            player = new GameObject(nameof(PlayerState)).AddComponent<PlayerState>();
-
-            previewGameMode = new PreviewGameMode(gameWorld, player, resources);
+            player = playerModuleServer.CreatePlayer(0, "LocalHero");
 
             Game.SetMousePointerLock(true);
         }
@@ -250,11 +221,13 @@ namespace QuarksWorld
         StateMachine<PreviewState> stateMachine;
 
         BundledResourceManager resources;
+
         PreviewGameMode previewGameMode;
+        PlayerModuleServer playerModuleServer;
 
         GameWorld gameWorld;
 
-        PlayerState player;
+        Player player;
 
         GameTime gameTime = new GameTime(60);
     }

@@ -1,8 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Entities;
 using UnityEngine;
-using Mirror;
 
 namespace QuarksWorld
 {
@@ -11,7 +11,7 @@ namespace QuarksWorld
         public float health;
         public float maxHealth;
         public int deathTick;
-        public int killedBy;
+        public Entity killedBy;
 
         public void SetMaxHealth(float maxHealth)
         {

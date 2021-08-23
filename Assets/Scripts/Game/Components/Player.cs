@@ -1,6 +1,6 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Entities;
 using UnityEngine;
 
 namespace QuarksWorld
@@ -8,35 +8,36 @@ namespace QuarksWorld
     public class Player : MonoBehaviour
     {
         float eyeHeight;
-        Transform weapons;
-        IMovement movement;
 
-        void OnPickupItem(Item item)
-        {
-                
-        }
+        public int id;
+        public string playerName;
+        public int teamIndex;
+        public int score;
+        public Entity controlledEntity;
+        public bool gameModeSystemInitialized;
 
+        // These are only sync'hed to owning client
+        public bool displayScoreBoard;
+        public bool displayGameScore;
+        public bool displayGameResult;
+        public string gameResult;
 
-        void SetupCollider()
-        {          
-            var collider = gameObject.AddComponent<BoxCollider>();
-            collider.size = new Vector3(1, eyeHeight, 1);
-            collider.center = Vector3.up * (eyeHeight / 2);
-        }
+        public bool displayGoal;
+        public Vector3 goalPosition;
+        public uint goalDefendersColor;
+        public uint goalAttackersColor;
+        public uint goalAttackers;
+        public uint goalDefenders;
+        public string goalString;
+        public float goalCompletion;
 
-        void SetupCamera()
-        {
-            var camera = gameObject.AddComponent<CameraSettings>();
-            camera.lockToTransform = true;
-            camera.position = transform.up * eyeHeight;
-        }
+        // Non synchronized
+        public bool allowedCharacterSwitch;
+        public UserCommand command = UserCommand.defaultCommand;
 
-        void SetupWeapons()
-        {
-            var weaponsRoot = new GameObject("Weapons");
-            weaponsRoot.transform.SetParent(transform);
-            weapons = weaponsRoot.transform;
-        }
-
+        // Character control
+        public int characterType = -1;
+        public int requestedCharacterType = -1;
+        public int requestedTeamIndex= -1;
     }
 }

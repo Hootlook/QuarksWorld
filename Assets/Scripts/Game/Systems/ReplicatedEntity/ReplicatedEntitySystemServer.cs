@@ -13,56 +13,50 @@ namespace QuarksWorld
         public ReplicatedEntityModuleServer(GameWorld gameWorld, BundledResourceManager resourceSystem)
         {
             world = gameWorld;
-            world.OnSpawn += HandleSpawning;
-            world.OnDespawn += HandleDespawning;
 
             assetRegistry = resourceSystem.GetResourceRegistry<ReplicatedEntityRegistry>();
             entityCollection = new ReplicatedEntityCollection();
         }
 
-        public void Shutdown()
-        {
-            world.OnSpawn -= HandleSpawning;
-            world.OnDespawn -= HandleDespawning;
-        }
+        public void Shutdown() { }
 
         public void GenerateEntitySnapshot(int entityId, NetworkWriter writer) => entityCollection.GenerateEntitySnapshot(entityId, writer);
 
         public string GenerateName(int entityId) => entityCollection.GenerateName(entityId);
 
-        void HandleSpawning(GameObject gameObject)
-        {
-            if (!gameObject.TryGetComponent(out ReplicatedEntity identity))
-            {
-                if (showInfo.IntValue > 0)
-                    GameDebug.Log("ReplicatedEntityModuleServer. ReplicatedEntity is missing on gameObject");
-                return;
-            }
+        // void HandleSpawning(GameObject gameObject)
+        // {
+        //     if (!gameObject.TryGetComponent(out ReplicatedEntity identity))
+        //     {
+        //         if (showInfo.IntValue > 0)
+        //             GameDebug.Log("ReplicatedEntityModuleServer. ReplicatedEntity is missing on gameObject");
+        //         return;
+        //     }
 
-            identity.typeId = assetRegistry.GetEntryIndex(identity.assetId);
-            identity.id = RegisterEntity(identity.id, (ushort)identity.typeId, identity.predictingPlayerId);
+        //     identity.typeId = assetRegistry.GetEntryIndex(identity.assetId);
+        //     identity.id = RegisterEntity(identity.id, (ushort)identity.typeId, identity.predictingPlayerId);
 
-            entityCollection.Register(identity.id, gameObject);
+        //     entityCollection.Register(identity.id, gameObject);
 
-            if (showInfo.IntValue > 0)
-                GameDebug.Log("HandleReplicatedEntityDataDespawn.Initialize entity:" + gameObject + " type:" + identity.assetId + " id:" + identity.id);
-        }
+        //     if (showInfo.IntValue > 0)
+        //         GameDebug.Log("HandleReplicatedEntityDataDespawn.Initialize entity:" + gameObject + " type:" + identity.assetId + " id:" + identity.id);
+        // }
 
-        void HandleDespawning(GameObject gameObject)
-        {
-            if (!gameObject.TryGetComponent(out ReplicatedEntity identity))
-            {
-                if (showInfo.IntValue > 0)
-                    GameDebug.Log("ReplicatedEntityModuleServer. ReplicatedEntity is missing on gameObject");
-                return;
-            }
+        // void HandleDespawning(GameObject gameObject)
+        // {
+        //     if (!gameObject.TryGetComponent(out ReplicatedEntity identity))
+        //     {
+        //         if (showInfo.IntValue > 0)
+        //             GameDebug.Log("ReplicatedEntityModuleServer. ReplicatedEntity is missing on gameObject");
+        //         return;
+        //     }
 
-            entityCollection.Unregister(identity.id);
-            UnregisterEntity(identity.id);
+        //     entityCollection.Unregister(identity.id);
+        //     UnregisterEntity(identity.id);
 
-            if (showInfo.IntValue > 0)
-                GameDebug.Log("HandleReplicatedEntityDataDespawn.Deinitialize entity:" + gameObject + " id:" + identity.id);
-        }
+        //     if (showInfo.IntValue > 0)
+        //         GameDebug.Log("HandleReplicatedEntityDataDespawn.Deinitialize entity:" + gameObject + " id:" + identity.id);
+        // }
 
         public ReplicatedEntityCollection entityCollection;
         

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Transforms;
 using UnityEngine;
 
 namespace QuarksWorld.Systems
@@ -37,18 +38,16 @@ namespace QuarksWorld.Systems
 
         public void Shutdown() { }
 
-        public void Update()
+        public void Update(Player[] players)
         {
             var gameModeState = gameModeSystem.gameModeState;
-
-            var players = PlayerState.List;
 
             switch (phase)
             {
                 case Phase.Countdown:
                     if (gameModeSystem.GetGameTimer() == 0)
                     {
-                        if (players.Count < minPlayers.IntValue)
+                        if (players.Length < minPlayers.IntValue)
                         {
                             // gameModeSystem.chatSystem.SendChatAnnouncement("Waiting for more players.");
                             gameModeSystem.StartGameTimer(preMatchTime, "PreMatch");
@@ -78,7 +77,7 @@ namespace QuarksWorld.Systems
                         // TODO : For now we just kill all players when we restart 
                         // but we should change it to something less dramatic like taking
                         // control away from the player or something
-                        for (int i = 0, c = players.Count; i < c; i++)
+                        for (int i = 0, c = players.Length; i < c; i++)
                         {
                             var playerState = players[i];
                             if (playerState.controlledEntity != null)
@@ -100,18 +99,12 @@ namespace QuarksWorld.Systems
                         gameModeSystem.SetRespawnEnabled(false);
                         gameModeSystem.StartGameTimer(postMatchTime, "PostMatch");
                         GameDebug.Log(winTeam > -1 ? $"Match over. {gameModeSystem.teams[winTeam].name}" : "Match over. Its a tie !");
-                        // var l = 0;
-                        // if (winTeam > -1)
-                        //     l = StringFormatter.Write(ref _msgBuf, 0, "Match over. {0} wins!", gameModeSystem.teams[winTeam].name);
-                        // else
-                        //     l = StringFormatter.Write(ref _msgBuf, 0, "Match over. Its a tie!");
-                        // gameModeSystem.chatSystem.SendChatAnnouncement(new CharBufView(_msgBuf, l));
                     }
                     break;
                 case Phase.Ended:
                     if (gameModeSystem.GetGameTimer() == 0)
                     {
-                        for (int i = 0, c = players.Count; i < c; i++)
+                        for (int i = 0, c = players.Length; i < c; i++)
                         {
                             var playerState = players[i];
                             playerState.displayGameResult = false;
@@ -122,19 +115,19 @@ namespace QuarksWorld.Systems
             }
 
             // Allow character switch if in team base
-            for (int i = 0; i < players.Count; i++)
+            for (int i = 0; i < players.Length; i++)
             {
                 var player = players[i];
                 if (player.controlledEntity == null)
                     continue;
 
-                var position = player.controlledEntity.transform.position;
+                var position = world.GetEntityManager().GetComponentData<Translation>(player.controlledEntity).Value;
                 player.allowedCharacterSwitch = false;
                 foreach (var teamBase in gameModeSystem.teamBases)
                 {
                     if (teamBase.teamIndex == player.teamIndex)
                     {
-                        var inside = (teamBase.boxCollider.transform.InverseTransformPoint(position) - teamBase.boxCollider.center);
+                        var inside = teamBase.boxCollider.transform.InverseTransformPoint(position) - teamBase.boxCollider.center;
                         if (Mathf.Abs(inside.x) < teamBase.boxCollider.size.x * 0.5f && Mathf.Abs(inside.y) < teamBase.boxCollider.size.y * 0.5f && Mathf.Abs(inside.z) < teamBase.boxCollider.size.z * 0.5f)
                         {
                             player.allowedCharacterSwitch = true;
@@ -145,13 +138,13 @@ namespace QuarksWorld.Systems
             }
         }
 
-        public void OnPlayerJoin(PlayerState player)
+        public void OnPlayerJoin(Player player)
         {
             player.score = 0;
             gameModeSystem.AssignTeamBalanced(player);
         }
 
-        public void OnPlayerKilled(PlayerState victim, PlayerState killer)
+        public void OnPlayerKilled(Player victim, Player killer)
         {
             if (killer != null)
             {
@@ -163,7 +156,7 @@ namespace QuarksWorld.Systems
             }
         }
 
-        public void OnPlayerRespawn(PlayerState player, ref Vector3 position, ref Quaternion rotation)
+        public void OnPlayerRespawn(Player player, ref Vector3 position, ref Quaternion rotation)
         {
             gameModeSystem.GetRandomSpawnTransform(player.teamIndex, ref position, ref rotation);
         }
